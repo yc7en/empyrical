@@ -21,7 +21,7 @@ from functools import partial
 import pandas as pd
 import numpy as np
 import scipy as sp
-import scipy.stats as stats
+import scipy.stats
 
 
 APPROX_BDAYS_PER_MONTH = 21
@@ -40,6 +40,81 @@ ANNUALIZATION_FACTORS = {
     WEEKLY: WEEKS_PER_YEAR,
     MONTHLY: MONTHS_PER_YEAR
 }
+
+def cum_returns(returns, starting_value=None):
+    """
+    Compute cumulative returns from simple returns.
+
+    Parameters
+    ----------
+    returns : pd.Series
+        Daily returns of the strategy, noncumulative.
+         - See full explanation in tears.create_full_tear_sheet.
+    starting_value : float, optional
+       The starting returns (default 1).
+
+    Returns
+    -------
+    pandas.Series
+        Series of cumulative returns.
+
+    Notes
+    -----
+    For increased numerical accuracy, convert input to log returns
+    where it is possible to sum instead of multiplying.
+    """
+
+    # df_price.pct_change() adds a nan in first position, we can use
+    # that to have cum_returns start at the origin so that
+    # df_cum.iloc[0] == starting_value
+    # Note that we can't add that ourselves as we don't know which dt
+    # to use.
+    if pd.isnull(returns.iloc[0]):
+        returns.iloc[0] = 0.
+
+    df_cum = np.exp(np.log(1 + returns).cumsum())
+
+    if starting_value is None:
+        return df_cum - 1
+    else:
+        return df_cum * starting_value
+
+
+def aggregate_returns(df_daily_rets, convert_to):
+    """
+    Aggregates returns by week, month, or year.
+
+    Parameters
+    ----------
+    df_daily_rets : pd.Series
+       Daily returns of the strategy, noncumulative.
+        - See full explanation in tears.create_full_tear_sheet (returns).
+    convert_to : str
+        Can be 'weekly', 'monthly', or 'yearly'.
+
+    Returns
+    -------
+    pd.Series
+        Aggregated returns.
+    """
+
+    def cumulate_returns(x):
+        return cum_returns(x)[-1]
+
+    if convert_to == WEEKLY:
+        return df_daily_rets.groupby(
+            [lambda x: x.year,
+             lambda x: x.isocalendar()[1]]).apply(cumulate_returns)
+    elif convert_to == MONTHLY:
+        return df_daily_rets.groupby(
+            [lambda x: x.year, lambda x: x.month]).apply(cumulate_returns)
+    elif convert_to == YEARLY:
+        return df_daily_rets.groupby(
+            [lambda x: x.year]).apply(cumulate_returns)
+    else:
+        ValueError(
+            'convert_to must be {}, {} or {}'.format(WEEKLY, MONTHLY, YEARLY)
+        )
 
 
 def var_cov_var_normal(P, c, mu=0, sigma=1):
@@ -62,7 +137,7 @@ def var_cov_var_normal(P, c, mu=0, sigma=1):
 
     """
 
-    alpha = sp.stats.norm.ppf(1 - c, mu, sigma)
+    alpha = sp.sp.stats.norm.ppf(1 - c, mu, sigma)
     return P - P * (alpha + 1)
 
 
@@ -427,7 +502,7 @@ def alpha_beta(returns, factor_returns):
 """
 
     ret_index = returns.index
-    beta, alpha = sp.stats.linregress(factor_returns.loc[ret_index].values,
+    beta, alpha = sp.sp.stats.linregress(factor_returns.loc[ret_index].values,
                                       returns.values)[:2]
 
     return alpha * APPROX_BDAYS_PER_YEAR, beta
@@ -496,7 +571,7 @@ def stability_of_timeseries(returns):
     """
 
     cum_log_returns = np.log1p(returns).cumsum()
-    rhat = stats.linregress(np.arange(len(cum_log_returns)),
+    rhat = sp.stats.linregress(np.arange(len(cum_log_returns)),
                             cum_log_returns.values)[2]
 
     return rhat
@@ -525,29 +600,6 @@ def tail_ratio(returns):
         np.abs(np.percentile(returns, 5))
 
 
-def common_sense_ratio(returns):
-    """Common sense ratio is the multiplication of the tail ratio and the
-    Gain-to-Pain-Ratio -- sum(profits) / sum(losses).
-
-    See http://bit.ly/1ORzGBk for more information on motivation of
-    this metric.
-
-
-    Parameters
-    ----------
-    returns : pd.Series
-        Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
-
-    Returns
-    -------
-    float
-        common sense ratio
-
-    """
-    return tail_ratio(returns) * (1 + annual_return(returns))
-
-
 SIMPLE_STAT_FUNCS = [
     annual_return,
     annual_volatility,
@@ -557,10 +609,9 @@ SIMPLE_STAT_FUNCS = [
     max_drawdown,
     omega_ratio,
     sortino_ratio,
-    stats.skew,
-    stats.kurtosis,
+    sp.stats.skew,
+    sp.stats.kurtosis,
     tail_ratio,
-    common_sense_ratio,
 ]
 
 FACTOR_STAT_FUNCS = [
