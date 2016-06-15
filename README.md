@@ -1,2 +1,2 @@
-# pyrisk
+# qrisk
 Common financial risk metrics.
