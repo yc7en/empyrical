@@ -4,9 +4,9 @@ from setuptools import setup
 import versioneer
 
 
-DISTNAME = 'pyrisk'
-DESCRIPTION = "pyrisk is a Python library with performance and risk statistics commonly used in quantitative finance"
-LONG_DESCRIPTION = """pyrisk is a Python library with performance and risk statistics
+DISTNAME = 'qrisk'
+DESCRIPTION = "qrisk is a Python library with performance and risk statistics commonly used in quantitative finance"
+LONG_DESCRIPTION = """qrisk is a Python library with performance and risk statistics
 commonly used in quantitative finance by `Quantopian Inc`_. It is used by `Zipline`_ open source backtesting library as well as `pyfolio`_.
 
 .. _Quantopian Inc: https://www.quantopian.com
@@ -39,6 +39,9 @@ install_reqs = [
     'scipy>=0.14.0',
 ]
 
+extras_reqs = {
+}
+
 test_reqs = ['nose>=1.3.7', 'nose-parameterized>=0.5.0']
 
 if __name__ == "__main__":
@@ -52,7 +55,7 @@ if __name__ == "__main__":
         license=LICENSE,
         url=URL,
         long_description=LONG_DESCRIPTION,
-        packages=['pyrisk', 'pyrisk.tests'],
+        packages=['qrisk', 'qrisk.tests'],
         classifiers=classifiers,
         install_requires=install_reqs,
         extras_requires=extras_reqs,
