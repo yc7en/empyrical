@@ -12,9 +12,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from .stats import *
+# flake8: noqa
 
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
+
+from .stats import (
+    cum_returns, 
+    aggregate_returns,
+    max_drawdown,
+    annual_return,
+    annual_volatility,
+    calmar_ratio,
+    omega_ratio,
+    sharpe_ratio,
+    sortino_ratio,
+    downside_risk,
+    information_ratio,
+    alpha_beta,
+    alpha,
+    beta,
+    stability_of_timeseries,
+    tail_ratio,
+    DAILY,
+    WEEKLY,
+    MONTHLY,
+    YEARLY
+)
