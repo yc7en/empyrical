@@ -5,9 +5,11 @@ import versioneer
 
 
 DISTNAME = 'qrisk'
-DESCRIPTION = "qrisk is a Python library with performance and risk statistics commonly used in quantitative finance"
-LONG_DESCRIPTION = """qrisk is a Python library with performance and risk statistics
-commonly used in quantitative finance by `Quantopian Inc`_. It is used by `Zipline`_ open source backtesting library as well as `pyfolio`_.
+DESCRIPTION = """qrisk is a Python library with performance and risk statistics
+commonly used in quantitative finance"""
+LONG_DESCRIPTION = """qrisk is a Python library with performance and risk
+statistics commonly used in quantitative finance by `Quantopian Inc`_. It is
+used by `Zipline`_ open source backtesting library as well as `pyfolio`_.
 
 .. _Quantopian Inc: https://www.quantopian.com
 .. _Zipline: http://zipline.io

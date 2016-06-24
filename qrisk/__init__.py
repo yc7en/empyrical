@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .stats import *
+from .stats import *  # noqa
 
 from ._version import get_versions
 __version__ = get_versions()['version']

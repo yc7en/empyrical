@@ -15,13 +15,10 @@
 
 from __future__ import division
 
-from collections import OrderedDict
-from functools import partial
-
 import pandas as pd
 import numpy as np
 import scipy as sp
-import scipy.stats
+import scipy.stats  # noqa
 
 
 APPROX_BDAYS_PER_MONTH = 21
@@ -41,17 +38,23 @@ ANNUALIZATION_FACTORS = {
     MONTHLY: MONTHS_PER_YEAR
 }
 
-def cum_returns(returns, starting_value=None):
+
+def cum_returns(returns, starting_value=0):
     """
     Compute cumulative returns from simple returns.
 
     Parameters
     ----------
     returns : pd.Series
-        Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
+        Returns of the strategy as a percentage, noncumulative.
+         - Time series with decimal returns.
+         - Example:
+            2015-07-16    -0.012143
+            2015-07-17    0.045350
+            2015-07-20    0.030957
+            2015-07-21    0.004902.
     starting_value : float, optional
-       The starting returns (default 1).
+       The starting returns (default is 0).
 
     Returns
     -------
@@ -62,10 +65,12 @@ def cum_returns(returns, starting_value=None):
     -----
     For increased numerical accuracy, convert input to log returns
     where it is possible to sum instead of multiplying.
+    PI((1+r_i)) - 1 = exp(ln(PI(1+r_i)))     # x = exp(ln(x))
+                    = exp(SIGMA(ln(1_r_i))   # ln(a*b) = ln(a) + ln(b)
     """
 
     # df_price.pct_change() adds a nan in first position, we can use
-    # that to have cum_returns start at the origin so that
+    # that to have cum_logarithmic_returns start at the origin so that
     # df_cum.iloc[0] == starting_value
     # Note that we can't add that ourselves as we don't know which dt
     # to use.
@@ -74,21 +79,21 @@ def cum_returns(returns, starting_value=None):
 
     df_cum = np.exp(np.log(1 + returns).cumsum())
 
-    if starting_value is None:
+    if starting_value is 0:
         return df_cum - 1
     else:
         return df_cum * starting_value
 
 
-def aggregate_returns(df_daily_rets, convert_to):
+def aggregate_returns(returns, convert_to):
     """
     Aggregates returns by week, month, or year.
 
     Parameters
     ----------
-    df_daily_rets : pd.Series
+    returns : pd.Series
        Daily returns of the strategy, noncumulative.
-        - See full explanation in tears.create_full_tear_sheet (returns).
+        - See full explanation in cum_returns.
     convert_to : str
         Can be 'weekly', 'monthly', or 'yearly'.
 
@@ -102,43 +107,19 @@ def aggregate_returns(df_daily_rets, convert_to):
         return cum_returns(x)[-1]
 
     if convert_to == WEEKLY:
-        return df_daily_rets.groupby(
+        return returns.groupby(
             [lambda x: x.year,
              lambda x: x.isocalendar()[1]]).apply(cumulate_returns)
     elif convert_to == MONTHLY:
-        return df_daily_rets.groupby(
+        return returns.groupby(
             [lambda x: x.year, lambda x: x.month]).apply(cumulate_returns)
     elif convert_to == YEARLY:
-        return df_daily_rets.groupby(
+        return returns.groupby(
             [lambda x: x.year]).apply(cumulate_returns)
     else:
         ValueError(
             'convert_to must be {}, {} or {}'.format(WEEKLY, MONTHLY, YEARLY)
         )
-
-
-def var_cov_var_normal(P, c, mu=0, sigma=1):
-    """Variance-covariance calculation of daily Value-at-Risk in a
-    portfolio.
-
-    Parameters
-    ----------
-    P : float
-        Portfolio value.
-    c : float
-        Confidence level.
-    mu : float, optional
-        Mean.
-
-    Returns
-    -------
-    float
-        Variance-covariance.
-
-    """
-
-    alpha = sp.sp.stats.norm.ppf(1 - c, mu, sigma)
-    return P - P * (alpha + 1)
 
 
 def max_drawdown(returns):
@@ -149,7 +130,7 @@ def max_drawdown(returns):
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
+        - See full explanation in cum_returns.
 
     Returns
     -------
@@ -166,27 +147,36 @@ def max_drawdown(returns):
 
     df_cum_rets = cum_returns(returns, starting_value=100)
     cum_max_return = df_cum_rets.cummax()
+    drawdown = df_cum_rets.sub(cum_max_return).div(cum_max_return)
 
-    return df_cum_rets.sub(cum_max_return).div(cum_max_return).min()
+    return drawdown.min()
 
 
-def annual_return(returns, period=DAILY):
-    """Determines the annual returns of a strategy.
+def annual_return(returns, period=DAILY, annualization=ANNUALIZATION_FACTORS):
+    """Determines the mean annual growth rate of returns.
 
     Parameters
     ----------
     returns : pd.Series
         Periodic returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
+        - See full explanation in cum_returns.
     period : str, optional
         - defines the periodicity of the 'returns' data for purposes of
         annualizing. Can be 'monthly', 'weekly', or 'daily'
         - defaults to 'daily'.
+    annualization : dict, optional
+        Factor used to convert the returns into annual returns. The
+        annualization factor for daily returns is the number of business days
+        in a year, for weekly it is the number of weeks per year, and for
+        monthly, it is the number of months per year. Default:
+        annualization = {'daily': 252,
+                         'weekly': 52,
+                         'monthly': 12}
 
     Returns
     -------
     float
-        Annual Return as CAGR (Compounded Annual Growth Rate)
+        Annual Return as CAGR (Compounded Annual Growth Rate).
 
     """
 
@@ -194,27 +184,26 @@ def annual_return(returns, period=DAILY):
         return np.nan
 
     try:
-        ann_factor = ANNUALIZATION_FACTORS[period]
+        ann_factor = annualization[period]
     except KeyError:
         raise ValueError(
             "period cannot be '{}'. "
-            "Must be '{}', '{}', or '{}'".format(
-                period, DAILY, WEEKLY, MONTHLY
+            "Can be '{}'.".format(
+                period, "', '".join(annualization.keys())
             )
         )
 
     num_years = float(len(returns)) / ann_factor
-    df_cum_rets = cum_returns(returns, starting_value=100)
     start_value = 100
-    end_value = df_cum_rets.iloc[-1]
-
+    end_value = cum_returns(returns, starting_value=start_value).iloc[-1]
     total_return = (end_value - start_value) / start_value
-    annual_return = (1. + total_return) ** (1 / num_years) - 1
+    annual_return = pow((1. + total_return), (1 / num_years)) - 1
 
     return annual_return
 
 
-def annual_volatility(returns, period=DAILY):
+def annual_volatility(returns, period=DAILY, alpha=2.0,
+                      annualization=ANNUALIZATION_FACTORS):
     """
     Determines the annual volatility of a strategy.
 
@@ -222,11 +211,17 @@ def annual_volatility(returns, period=DAILY):
     ----------
     returns : pd.Series
         Periodic returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
+        - See full explanation in cum_returns.
     period : str, optional
-        - defines the periodicity of the 'returns' data for purposes of
+        - Defines the periodicity of the 'returns' data for purposes of
         annualizing volatility. Can be 'monthly' or 'weekly' or 'daily'.
         - defaults to 'daily'
+    alpha : float, optional
+        Scaling relation (Levy stability exponent).
+        - Defaults to Weiner process scaling of 2.
+    annualization : dict, optional
+        Factor used to convert returns into annual returns.
+        - See full explanation in annual_return.
 
     Returns
     -------
@@ -238,19 +233,21 @@ def annual_volatility(returns, period=DAILY):
         return np.nan
 
     try:
-        ann_factor = ANNUALIZATION_FACTORS[period]
+        ann_factor = annualization[period]
     except KeyError:
         raise ValueError(
-            "period cannot be: '{}'."
-            " Must be '{}', '{}', or '{}'".format(
-                period, DAILY, WEEKLY, MONTHLY
+            "period cannot be '{}'. "
+            "Can be '{}'.".format(
+                period, "', '".join(annualization.keys())
             )
         )
 
-    return returns.std() * np.sqrt(ann_factor)
+    volatility = returns.std() * pow(ann_factor, float(1.0/alpha))
+
+    return volatility
 
 
-def calmar_ratio(returns, period=DAILY):
+def calmar_ratio(returns, period=DAILY, annualization=ANNUALIZATION_FACTORS):
     """
     Determines the Calmar ratio, or drawdown ratio, of a strategy.
 
@@ -258,17 +255,21 @@ def calmar_ratio(returns, period=DAILY):
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
+        - See full explanation in cumf_returns.
     period : str, optional
-        - defines the periodicity of the 'returns' data for purposes of
+        - Defines the periodicity of the 'returns' data for purposes of
         annualizing. Can be 'monthly', 'weekly', or 'daily'
-        - defaults to 'daily'.
+        - Defaults to 'daily'.
+    annualization : dict, optional
+        Factor used to convert returns into annual returns.
+        - See full explanation in annual_return.
 
 
     Returns
     -------
-    float
-        Calmar ratio (drawdown ratio).
+    float, np.nan
+        Calmar ratio (drawdown ratio) as float. Returns np.nan if there is no
+        calmar ratio.
 
     Note
     -----
@@ -279,7 +280,8 @@ def calmar_ratio(returns, period=DAILY):
     if temp_max_dd < 0:
         temp = annual_return(
             returns=returns,
-            period=period
+            period=period,
+            annualization=annualization
         ) / abs(max_drawdown(returns=returns))
     else:
         return np.nan
@@ -290,18 +292,23 @@ def calmar_ratio(returns, period=DAILY):
     return temp
 
 
-def omega_ratio(returns, annual_return_threshhold=0.0):
+def omega_ratio(returns, minimum_acceptable_return=0.0,
+                bdays=APPROX_BDAYS_PER_YEAR):
     """Determines the Omega ratio of a strategy.
 
     Parameters
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
-    annual_return_threshold : float, optional
-        Threshold over which to consider positive vs negative
-        returns. For the ratio, it will be converted to a daily return
-        and compared to returns.
+        - See full explanation in cum_returns.
+    minimum_acceptable_return : float, optional
+        Minimum acceptance return of the investor. Threshold over which to
+        consider positive vs negative returns. For the ratio, it will be
+        converted to a daily return and compared to returns.
+        - Default is 0.
+    bdays : int, optional
+        Number of business days in a year.
+        - Default is 252.
 
     Returns
     -------
@@ -314,8 +321,7 @@ def omega_ratio(returns, annual_return_threshhold=0.0):
 
     """
 
-    daily_return_thresh = pow(1 + annual_return_threshhold, 1 /
-                              APPROX_BDAYS_PER_YEAR) - 1
+    daily_return_thresh = pow(1 + minimum_acceptable_return, 1 / bdays) - 1
 
     returns_less_thresh = returns - daily_return_thresh
 
@@ -328,7 +334,60 @@ def omega_ratio(returns, annual_return_threshhold=0.0):
         return np.nan
 
 
-def sortino_ratio(returns, required_return=0, period=DAILY):
+def sharpe_ratio(returns, risk_free=0, period=DAILY,
+                 annualization=ANNUALIZATION_FACTORS):
+    """
+    Determines the Sharpe ratio of a strategy.
+
+    Parameters
+    ----------
+    returns : pd.Series
+        Daily returns of the strategy, noncumulative.
+        - See full explanation in cum_returns.
+    risk_free : int, float
+        Constant risk-free return throughout the period.
+    period : str, optional
+        - defines the periodicity of the 'returns' data for purposes of
+        annualizing. Can be 'monthly', 'weekly', or 'daily'
+        - defaults to 'daily'.
+    annualization : dict, optional
+        Factor used to convert returns into annual returns.
+        - See full explanation in annual_return.
+
+    Returns
+    -------
+    float
+        Sharpe ratio.
+    np.nan
+        If insufficient length of returns or if if adjusted returns are 0.
+
+    Note
+    -----
+    See https://en.wikipedia.org/wiki/Sharpe_ratio for more details.
+
+    """
+
+    try:
+        ann_factor = annualization[period]
+    except KeyError:
+        raise ValueError(
+            "period cannot be '{}'. "
+            "Can be '{}'.".format(
+                period, "', '".join(annualization.keys())
+            )
+        )
+
+    returns_risk_adj = returns - risk_free
+
+    if (len(returns_risk_adj) < 5) or np.all(returns_risk_adj == 0):
+        return np.nan
+
+    return np.mean(returns_risk_adj) / np.std(returns_risk_adj, ddof=1) * \
+        np.sqrt(ann_factor)
+
+
+def sortino_ratio(returns, required_return=0, period=DAILY,
+                  annualization=ANNUALIZATION_FACTORS):
     """
     Determines the Sortino ratio of a strategy.
 
@@ -336,13 +395,17 @@ def sortino_ratio(returns, required_return=0, period=DAILY):
     ----------
     returns : pd.Series or pd.DataFrame
         Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
+        - See full explanation in cum_returns.
     required_return: float / series
         minimum acceptable return
     period : str, optional
-        - defines the periodicity of the 'returns' data for purposes of
-        annualizing. Can be 'monthly', 'weekly', or 'daily'
+        - Defines the periodicity of the 'returns' data for purposes of
+        annualizing. Can be 'monthly', 'weekly', or 'daily' or another value
+        if a custom annualization factor is used.
         - defaults to 'daily'.
+    annualization : dict, optional
+        Factor used to convert returns into annual returns.
+        - See full explanation in annual_return.
 
     Returns
     -------
@@ -353,15 +416,19 @@ def sortino_ratio(returns, required_return=0, period=DAILY):
         Annualized Sortino ratio.
 
     """
+
     try:
-        ann_factor = ANNUALIZATION_FACTORS[period]
+        ann_factor = annualization[period]
     except KeyError:
         raise ValueError(
-            "period cannot be: '{}'."
-            " Must be '{}', '{}', or '{}'".format(
-                period, DAILY, WEEKLY, MONTHLY
+            "period cannot be '{}'. "
+            "Can be '{}'.".format(
+                period, "', '".join(annualization.keys())
             )
         )
+
+    if len(returns) < 2:
+        return np.nan
 
     mu = np.nanmean(returns - required_return, axis=0)
     sortino = mu / downside_risk(returns, required_return)
@@ -370,7 +437,8 @@ def sortino_ratio(returns, required_return=0, period=DAILY):
     return sortino * ann_factor
 
 
-def downside_risk(returns, required_return=0, period=DAILY):
+def downside_risk(returns, required_return=0, period=DAILY,
+                  annualization=ANNUALIZATION_FACTORS):
     """
     Determines the downside deviation below a threshold
 
@@ -378,14 +446,16 @@ def downside_risk(returns, required_return=0, period=DAILY):
     ----------
     returns : pd.Series or pd.DataFrame
         Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
-
+        - See full explanation in cum_returns.
     required_return: float / series
         minimum acceptable return
     period : str, optional
         - defines the periodicity of the 'returns' data for purposes of
         annualizing. Can be 'monthly', 'weekly', or 'daily'
         - defaults to 'daily'.
+    annualization : dict, optional
+        Factor used to convert returns into annual returns.
+        - See full explanation in annual_return.
 
     Returns
     -------
@@ -396,13 +466,14 @@ def downside_risk(returns, required_return=0, period=DAILY):
         Annualized downside deviation
 
     """
+
     try:
-        ann_factor = ANNUALIZATION_FACTORS[period]
+        ann_factor = annualization[period]
     except KeyError:
         raise ValueError(
-            "period cannot be: '{}'."
-            " Must be '{}', '{}', or '{}'".format(
-                period, DAILY, WEEKLY, MONTHLY
+            "period cannot be '{}'. "
+            "Can be '{}'.".format(
+                period, "', '".join(annualization.keys())
             )
         )
 
@@ -417,40 +488,6 @@ def downside_risk(returns, required_return=0, period=DAILY):
     return dside_risk
 
 
-def sharpe_ratio(returns, risk_free=0, period=DAILY):
-    """
-    Determines the Sharpe ratio of a strategy.
-
-    Parameters
-    ----------
-    returns : pd.Series
-        Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
-    period : str, optional
-        - defines the periodicity of the 'returns' data for purposes of
-        annualizing. Can be 'monthly', 'weekly', or 'daily'
-        - defaults to 'daily'.
-
-    Returns
-    -------
-    float
-        Sharpe ratio.
-
-    Note
-    -----
-    See https://en.wikipedia.org/wiki/Sharpe_ratio for more details.
-    """
-
-    returns_risk_adj = returns - risk_free
-
-    if (len(returns_risk_adj) < 5) or np.all(returns_risk_adj == 0):
-        return np.nan
-
-    return np.mean(returns_risk_adj) / \
-        np.std(returns_risk_adj) * \
-        np.sqrt(ANNUALIZATION_FACTORS[period])
-
-
 def information_ratio(returns, factor_returns):
     """
     Determines the Information ratio of a strategy.
@@ -459,8 +496,9 @@ def information_ratio(returns, factor_returns):
     ----------
     returns : pd.Series or pd.DataFrame
         Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
+        - See full explanation in cum_returns.
     factor_returns: float / series
+        Benchmark return to compare returns against.
 
     Returns
     -------
@@ -472,6 +510,9 @@ def information_ratio(returns, factor_returns):
     See https://en.wikipedia.org/wiki/information_ratio for more details.
 
     """
+    if len(returns) < 2:
+        return np.nan
+
     active_return = returns - factor_returns
     tracking_error = np.std(active_return, ddof=1)
     if np.isnan(tracking_error):
@@ -479,18 +520,22 @@ def information_ratio(returns, factor_returns):
     return np.mean(active_return) / tracking_error
 
 
-def alpha_beta(returns, factor_returns):
+def alpha_beta(returns, factor_returns, risk_free=0.0):
     """Calculates both alpha and beta.
 
     Parameters
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
+        - See full explanation in cum_returns.
     factor_returns : pd.Series
          Daily noncumulative returns of the factor to which beta is
          computed. Usually a benchmark such as the market.
          - This is in the same style as returns.
+    risk_free : int, float, optional
+        Constant risk-free return throughout the period. For example, the
+        interest rate on a three month us treasury bill.
+        - Default is 0.
 
     Returns
     -------
@@ -499,57 +544,72 @@ def alpha_beta(returns, factor_returns):
     float
         Beta.
 
-"""
+    """
+    if len(returns) < 2:
+        return np.nan
 
-    ret_index = returns.index
-    beta, alpha = sp.sp.stats.linregress(factor_returns.loc[ret_index].values,
-                                      returns.values)[:2]
+    y = (returns - risk_free).loc[factor_returns.index].dropna()
+    x = (factor_returns - risk_free).loc[y.index].dropna()
+    y = y.loc[x.index]
+    beta, alpha = sp.stats.linregress(x.values, y.values)[:2]
 
-    return alpha * APPROX_BDAYS_PER_YEAR, beta
+    return alpha, beta
 
 
-def alpha(returns, factor_returns):
-    """Calculates annualized alpha.
+def alpha(returns, factor_returns, risk_free=0.0):
+    """Calculates alpha.
 
     Parameters
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
+        - See full explanation in cum_returns.
     factor_returns : pd.Series
          Daily noncumulative returns of the factor to which beta is
          computed. Usually a benchmark such as the market.
          - This is in the same style as returns.
+    risk_free : int, float, optional
+        Constant risk-free return throughout the period. For example, the
+        interest rate on a three month us treasury bill.
+        - Default is 0.
 
     Returns
     -------
     float
         Alpha.
-"""
+    """
 
-    return alpha_beta(returns, factor_returns)[0]
+    if len(returns) < 2:
+        return np.nan
+    return alpha_beta(returns, factor_returns, risk_free=risk_free)[0]
 
 
-def beta(returns, factor_returns):
+def beta(returns, factor_returns, risk_free=0.0):
     """Calculates beta.
 
     Parameters
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
+        - See full explanation in cum_returns.
     factor_returns : pd.Series
          Daily noncumulative returns of the factor to which beta is
          computed. Usually a benchmark such as the market.
          - This is in the same style as returns.
+    risk_free : int, float, optional
+        Constant risk-free return throughout the period. For example, the
+        interest rate on a three month us treasury bill.
+        - Default is 0.
 
     Returns
     -------
     float
         Beta.
-"""
+    """
 
-    return alpha_beta(returns, factor_returns)[1]
+    if len(returns) < 2:
+        return np.nan
+    return alpha_beta(returns, factor_returns, risk_free=risk_free)[1]
 
 
 def stability_of_timeseries(returns):
@@ -561,7 +621,7 @@ def stability_of_timeseries(returns):
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
+        - See full explanation in cum_returns.
 
     Returns
     -------
@@ -569,10 +629,11 @@ def stability_of_timeseries(returns):
         R-squared.
 
     """
-
+    if len(returns) < 2:
+        return np.nan
     cum_log_returns = np.log1p(returns).cumsum()
     rhat = sp.stats.linregress(np.arange(len(cum_log_returns)),
-                            cum_log_returns.values)[2]
+                               cum_log_returns.values)[2]
 
     return rhat
 
@@ -587,7 +648,7 @@ def tail_ratio(returns):
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-         - See full explanation in tears.create_full_tear_sheet.
+         - See full explanation in cum_returns.
 
     Returns
     -------
@@ -595,7 +656,6 @@ def tail_ratio(returns):
         tail ratio
 
     """
-
     return np.abs(np.percentile(returns, 95)) / \
         np.abs(np.percentile(returns, 5))
 
