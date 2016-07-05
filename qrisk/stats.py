@@ -440,6 +440,9 @@ def sortino_ratio(returns, required_return=0, period=DAILY,
     if len(returns) < 2:
         return np.nan
 
+    if len(returns) < 2:
+        return np.nan
+
     mu = np.nanmean(returns - required_return, axis=0)
     sortino = mu / downside_risk(returns, required_return)
     if len(returns.shape) == 2:
