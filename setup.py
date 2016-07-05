@@ -33,7 +33,7 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Mathematics",
-    "Operating System :: OS Independen"
+    "Operating System :: OS Independent"
 ]
 
 
