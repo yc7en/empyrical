@@ -143,15 +143,17 @@ def aggregate_returns(returns, convert_to):
         return cum_returns(x)[-1]
 
     if convert_to == WEEKLY:
-        return returns.resample('W', how={'Agg': cumulate_returns})
+        grouping = [lambda x: x.year, lambda x: x.isocalendar()[1]]
     elif convert_to == MONTHLY:
-        return returns.resample('M', how={'Agg': cumulate_returns})
+        grouping = [lambda x: x.year, lambda x: x.month]
     elif convert_to == YEARLY:
-        return returns.resample('A', how={'Agg': cumulate_returns})
+        grouping = [lambda x: x.year]
     else:
-        ValueError(
+        raise ValueError(
             'convert_to must be {}, {} or {}'.format(WEEKLY, MONTHLY, YEARLY)
         )
+
+    return returns.groupby(grouping).apply(cumulate_returns)
 
 
 def max_drawdown(returns):
@@ -504,7 +506,7 @@ def information_ratio(returns, factor_returns):
     ----------
     returns : pd.Series or pd.DataFrame
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~qrisk.stats.cum_returns`.
     factor_returns: float / series
         Benchmark return to compare returns against.
 
@@ -600,7 +602,7 @@ def beta(returns, factor_returns, risk_free=0.0):
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~qrisk.stats.cum_returns`.
     factor_returns : pd.Series
          Daily noncumulative returns of the factor to which beta is
          computed. Usually a benchmark such as the market.
