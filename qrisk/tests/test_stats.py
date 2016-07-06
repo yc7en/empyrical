@@ -104,7 +104,7 @@ class TestStats(TestCase):
         (monthly_returns, qrisk.YEARLY, [0.038931091700480147])
     ])
     def test_aggregate_returns(self, returns, convert_to, expected):
-        returns = list(qrisk.aggregate_returns(returns, convert_to)['Agg'])
+        returns = qrisk.aggregate_returns(returns, convert_to).values.tolist()
         for i, v in enumerate(returns):
             assert_almost_equal(
                 v,
