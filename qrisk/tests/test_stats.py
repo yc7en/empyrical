@@ -302,7 +302,7 @@ class TestStats(TestCase):
         (empty_returns, simple_benchmark, (np.nan, np.nan)),
         (one_return, one_return, (np.nan, np.nan)),
         (mixed_returns, simple_benchmark, (np.nan, np.nan)),
-        (mixed_returns, negative_returns, (-0.032962962962962965,
+        (mixed_returns, negative_returns, (-8.3066666666666666,
                                            -0.71296296296296291)),
         (mixed_returns, mixed_returns, (0.0, 1.0)),
         (mixed_returns, -mixed_returns, (0.0, -1.0)),

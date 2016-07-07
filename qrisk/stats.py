@@ -532,8 +532,9 @@ def information_ratio(returns, factor_returns):
     return np.mean(active_return) / tracking_error
 
 
-def alpha_beta(returns, factor_returns, risk_free=0.0):
-    """Calculates both alpha and beta.
+def alpha_beta(returns, factor_returns, risk_free=0.0, period=DAILY,
+               annualization=None):
+    """Calculates annualized alpha and beta.
 
     Parameters
     ----------
@@ -547,6 +548,13 @@ def alpha_beta(returns, factor_returns, risk_free=0.0):
     risk_free : int, float, optional
         Constant risk-free return throughout the period. For example, the
         interest rate on a three month us treasury bill.
+    period : str, optional
+        Defines the periodicity of the 'returns' data for purposes of
+        annualizing. Can be 'monthly', 'weekly', or 'daily'.
+    annualization : int, optional
+        Factor used to convert the returns into annual returns, if different
+        from the default values used for different periods.
+        - See full explanation in :func:`~qrisk.stats.annual_return`.
 
     Returns
     -------
@@ -559,16 +567,19 @@ def alpha_beta(returns, factor_returns, risk_free=0.0):
     if len(returns) < 2:
         return np.nan, np.nan
 
+    ann_factor = annualization_factor(period, annualization)
+
     y = (returns - risk_free).loc[factor_returns.index].dropna()
     x = (factor_returns - risk_free).loc[y.index].dropna()
     y = y.loc[x.index]
     beta, alpha = stats.linregress(x.values, y.values)[:2]
 
-    return alpha, beta
+    return alpha * ann_factor, beta
 
 
-def alpha(returns, factor_returns, risk_free=0.0):
-    """Calculates alpha.
+def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
+          annualization=None):
+    """Calculates annualized alpha.
 
     Parameters
     ----------
@@ -582,6 +593,13 @@ def alpha(returns, factor_returns, risk_free=0.0):
     risk_free : int, float, optional
         Constant risk-free return throughout the period. For example, the
         interest rate on a three month us treasury bill.
+    period : str, optional
+        Defines the periodicity of the 'returns' data for purposes of
+        annualizing. Can be 'monthly', 'weekly', or 'daily'.
+    annualization : int, optional
+        Factor used to convert the returns into annual returns, if different
+        from the default values used for different periods.
+        - See full explanation in :func:`~qrisk.stats.annual_return`.
 
     Returns
     -------
@@ -592,7 +610,11 @@ def alpha(returns, factor_returns, risk_free=0.0):
     if len(returns) < 2:
         return np.nan
 
-    return alpha_beta(returns, factor_returns, risk_free=risk_free)[0]
+    return alpha_beta(returns,
+                      factor_returns,
+                      risk_free=risk_free,
+                      period=period,
+                      annualization=annualization)[0]
 
 
 def beta(returns, factor_returns, risk_free=0.0):
