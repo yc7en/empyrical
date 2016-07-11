@@ -47,13 +47,15 @@ def annualization_factor(period, annualization):
     ----------
     period : str, optional
         Defines the periodicity of the 'returns' data for purposes of
-        annualizing. Can be 'monthly', 'weekly', or 'daily'.
+        annualizing. Value ignored if `annualization` parameter is specified.
+        Defaults are:
+            'monthly':12
+            'weekly': 52
+            'daily': 252
     annualization : int, optional
-        Factor used to annualize returns when different from default values.
-        - Default:
-          annualization = {'daily': 252,
-                           'weekly': 52,
-                           'monthly': 12}
+        Used to suppress default values available in `period` to convert
+        returns into annual returns. Value should be the annual frequency of
+        `returns`.
 
     Returns
     -------
@@ -194,13 +196,15 @@ def annual_return(returns, period=DAILY, annualization=None):
         - See full explanation in :func:`~qrisk.stats.cum_returns`.
     period : str, optional
         Defines the periodicity of the 'returns' data for purposes of
-        annualizing. Can be 'monthly', 'weekly', or 'daily'.
+        annualizing. Value ignored if `annualization` parameter is specified.
+        Defaults are:
+            'monthly':12
+            'weekly': 52
+            'daily': 252
     annualization : int, optional
-        Factor used to annualize returns when different from default values.
-        - Default:
-          annualization = {'daily': 252,
-                           'weekly': 52,
-                           'monthly': 12}
+        Used to suppress default values available in `period` to convert
+        returns into annual returns. Value should be the annual frequency of
+        `returns`.
 
     Returns
     -------
@@ -235,13 +239,17 @@ def annual_volatility(returns, period=DAILY, alpha=2.0,
         - See full explanation in :func:`~qrisk.stats.cum_returns`.
     period : str, optional
         Defines the periodicity of the 'returns' data for purposes of
-        annualizing volatility. Can be 'monthly' or 'weekly' or 'daily'.
+        annualizing. Value ignored if `annualization` parameter is specified.
+        Defaults are:
+            'monthly':12
+            'weekly': 52
+            'daily': 252
     alpha : float, optional
         Scaling relation (Levy stability exponent).
     annualization : int, optional
-        Factor used to convert the returns into annual returns, if different
-        from the default values used for different periods.
-        - See full explanation in :func:`~qrisk.stats.annual_return`.
+        Used to suppress default values available in `period` to convert
+        returns into annual returns. Value should be the annual frequency of
+        `returns`.
 
     Returns
     -------
@@ -270,11 +278,15 @@ def calmar_ratio(returns, period=DAILY, annualization=None):
         - See full explanation in :func:`~qrisk.stats.cum_returns`.
     period : str, optional
         Defines the periodicity of the 'returns' data for purposes of
-        annualizing. Can be 'monthly', 'weekly', or 'daily'.
+        annualizing. Value ignored if `annualization` parameter is specified.
+        Defaults are:
+            'monthly':12
+            'weekly': 52
+            'daily': 252
     annualization : int, optional
-        Factor used to convert the returns into annual returns, if different
-        from the default values used for different periods.
-        - See full explanation in :func:`~qrisk.stats.annual_return`.
+        Used to suppress default values available in `period` to convert
+        returns into annual returns. Value should be the annual frequency of
+        `returns`.
 
 
     Returns
@@ -371,11 +383,15 @@ def sharpe_ratio(returns, risk_free=0, period=DAILY, annualization=None):
         Constant risk-free return throughout the period.
     period : str, optional
         Defines the periodicity of the 'returns' data for purposes of
-        annualizing. Can be 'monthly', 'weekly', or 'daily'.
+        annualizing. Value ignored if `annualization` parameter is specified.
+        Defaults are:
+            'monthly':12
+            'weekly': 52
+            'daily': 252
     annualization : int, optional
-        Factor used to convert the returns into annual returns, if different
-        from the default values used for different periods.
-        - See full explanation in :func:`~qrisk.stats.annual_return`.
+        Used to suppress default values available in `period` to convert
+        returns into annual returns. Value should be the annual frequency of
+        `returns`.
 
     Returns
     -------
@@ -418,11 +434,15 @@ def sortino_ratio(returns, required_return=0, period=DAILY,
         minimum acceptable return
     period : str, optional
         Defines the periodicity of the 'returns' data for purposes of
-        annualizing. Can be 'monthly', 'weekly', or 'daily'.
+        annualizing. Value ignored if `annualization` parameter is specified.
+        Defaults are:
+            'monthly':12
+            'weekly': 52
+            'daily': 252
     annualization : int, optional
-        Factor used to convert the returns into annual returns, if different
-        from the default values used for different periods.
-        - See full explanation in :func:`~qrisk.stats.annual_return`.
+        Used to suppress default values available in `period` to convert
+        returns into annual returns. Value should be the annual frequency of
+        `returns`.
 
     Returns
     -------
@@ -466,11 +486,15 @@ def downside_risk(returns, required_return=0, period=DAILY,
         minimum acceptable return
     period : str, optional
         Defines the periodicity of the 'returns' data for purposes of
-        annualizing. Can be 'monthly', 'weekly', or 'daily'.
+        annualizing. Value ignored if `annualization` parameter is specified.
+        Defaults are:
+            'monthly':12
+            'weekly': 52
+            'daily': 252
     annualization : int, optional
-        Factor used to convert the returns into annual returns, if different
-        from the default values used for different periods.
-        - See full explanation in :func:`~qrisk.stats.annual_return`.
+        Used to suppress default values available in `period` to convert
+        returns into annual returns. Value should be the annual frequency of
+        `returns`.
 
     Returns
     -------
@@ -550,11 +574,15 @@ def alpha_beta(returns, factor_returns, risk_free=0.0, period=DAILY,
         interest rate on a three month us treasury bill.
     period : str, optional
         Defines the periodicity of the 'returns' data for purposes of
-        annualizing. Can be 'monthly', 'weekly', or 'daily'.
+        annualizing. Value ignored if `annualization` parameter is specified.
+        Defaults are:
+            'monthly':12
+            'weekly': 52
+            'daily': 252
     annualization : int, optional
-        Factor used to convert the returns into annual returns, if different
-        from the default values used for different periods.
-        - See full explanation in :func:`~qrisk.stats.annual_return`.
+        Used to suppress default values available in `period` to convert
+        returns into annual returns. Value should be the annual frequency of
+        `returns`.
 
     Returns
     -------
@@ -595,10 +623,15 @@ def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
         interest rate on a three month us treasury bill.
     period : str, optional
         Defines the periodicity of the 'returns' data for purposes of
-        annualizing. Can be 'monthly', 'weekly', or 'daily'.
+        annualizing. Value ignored if `annualization` parameter is specified.
+        Defaults are:
+            'monthly':12
+            'weekly': 52
+            'daily': 252
     annualization : int, optional
-        Factor used to convert the returns into annual returns, if different
-        from the default values used for different periods.
+        Used to suppress default values available in `period` to convert
+        returns into annual returns. Value should be the annual frequency of
+        `returns`.
         - See full explanation in :func:`~qrisk.stats.annual_return`.
 
     Returns
