@@ -221,7 +221,7 @@ class TestStats(TestCase):
 
     @parameterized.expand([
         (simple_benchmark, qrisk.DAILY, 0.0),
-        (mixed_returns, qrisk.DAILY, 0.85527773266933604),
+        (mixed_returns, qrisk.DAILY, 0.8552777326693359),
         (weekly_returns, qrisk.WEEKLY, 0.38851569394870583),
         (monthly_returns, qrisk.MONTHLY, 0.18663690238892558)
     ])
@@ -251,6 +251,7 @@ class TestStats(TestCase):
             expected,
             DECIMAL_PLACES)
 
+    # Regression tests for omega ratio
     @parameterized.expand([
         (empty_returns, 0.0, 0.0, np.nan),
         (one_return, 0.0, 0.0, np.nan),
@@ -271,6 +272,17 @@ class TestStats(TestCase):
                 required_return=required_return),
             expected,
             DECIMAL_PLACES)
+
+    # As the required return increases (but is still less than the maximum
+    # return), omega decreases
+    @parameterized.expand([
+        (noise_uniform, 0.0, 0.001),
+        (noise, .001, .002),
+    ])
+    def test_omega_returns(self, returns, required_return_less,
+                           required_return_more):
+        assert qrisk.omega_ratio(returns, required_return_less) > \
+            qrisk.omega_ratio(returns, required_return_more)
 
     # Regressive sharpe ratio tests
     @parameterized.expand([
@@ -610,7 +622,7 @@ class TestStats(TestCase):
     @parameterized.expand([
         (empty_returns, simple_benchmark, np.nan),
         (one_return, one_return, np.nan),
-        (mixed_returns, simple_benchmark, np.nan),
+        (mixed_returns, simple_benchmark[1:], np.nan),
         (mixed_returns, mixed_returns, 0.0),
         (mixed_returns, -mixed_returns, 0.0),
     ])
@@ -673,7 +685,7 @@ class TestStats(TestCase):
     @parameterized.expand([
         (0.25, .75),
         (.1, .9),
-        (.01, .03)
+        (.01, .1)
     ])
     def test_alphabeta_correlation(self, corr_less, corr_more):
         mean_returns = 0.01
@@ -711,8 +723,8 @@ class TestStats(TestCase):
         (empty_returns, simple_benchmark, np.nan),
         (one_return, one_return,  np.nan),
         (mixed_returns, simple_benchmark, np.nan),
-        (mixed_returns, mixed_returns, 1.0),
-        (mixed_returns, -mixed_returns, -1.0),
+        (noise, noise, 1.0),
+        (noise, inv_noise, -1.0),
     ])
     def test_beta(self, returns, benchmark, expected):
         assert_almost_equal(
@@ -723,8 +735,8 @@ class TestStats(TestCase):
     @parameterized.expand([
         (empty_returns, simple_benchmark),
         (one_return, one_return),
-        (mixed_returns, simple_benchmark),
-        (mixed_returns, negative_returns),
+        (mixed_returns, simple_benchmark[1:]),
+        (mixed_returns, negative_returns[1:]),
         (mixed_returns, mixed_returns),
         (mixed_returns, -mixed_returns),
     ])
