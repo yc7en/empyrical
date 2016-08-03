@@ -108,7 +108,6 @@ def cum_returns(returns, starting_value=0):
     PI((1+r_i)) - 1 = exp(ln(PI(1+r_i)))     # x = exp(ln(x))
                     = exp(SIGMA(ln(1+r_i))   # ln(a*b) = ln(a) + ln(b)
     """
-
     # df_price.pct_change() adds a nan in first position, we can use
     # that to have cum_logarithmic_returns start at the origin so that
     # df_cum.iloc[0] == starting_value
@@ -415,7 +414,7 @@ def sharpe_ratio(returns, risk_free=0, period=DAILY, annualization=None):
 
     returns_risk_adj = returns - risk_free
 
-    if np.std(returns_risk_adj) == 0:
+    if np.std(returns_risk_adj, ddof=1) == 0:
         return np.nan
 
     return np.mean(returns_risk_adj) / np.std(returns_risk_adj, ddof=1) * \
@@ -591,17 +590,9 @@ def alpha_beta(returns, factor_returns, risk_free=0.0, period=DAILY,
         Beta.
 
     """
-    if len(returns) < 2:
-        return np.nan, np.nan
-
-    ann_factor = annualization_factor(period, annualization)
-
-    y = (returns - risk_free).loc[factor_returns.index].dropna()
-    x = (factor_returns - risk_free).loc[y.index].dropna()
-    y = y.loc[x.index]
-    beta, alpha = stats.linregress(x.values, y.values)[:2]
-
-    return alpha * ann_factor, beta
+    b = beta(returns, factor_returns, risk_free)
+    a = alpha(returns, factor_returns, risk_free, period, annualization)
+    return a, b
 
 
 def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
@@ -638,15 +629,12 @@ def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
     float
         Alpha.
     """
-
     if len(returns) < 2:
         return np.nan
-
-    return alpha_beta(returns,
-                      factor_returns,
-                      risk_free=risk_free,
-                      period=period,
-                      annualization=annualization)[0]
+    ann_factor = annualization_factor(period, annualization)
+    b = beta(returns, factor_returns, risk_free)
+    alpha = returns - risk_free - b*(factor_returns - risk_free)
+    return alpha.mean() * ann_factor
 
 
 def beta(returns, factor_returns, risk_free=0.0):
@@ -674,7 +662,10 @@ def beta(returns, factor_returns, risk_free=0.0):
     if len(returns) < 2:
         return np.nan
 
-    return alpha_beta(returns, factor_returns, risk_free=risk_free)[1]
+    covar = np.cov(returns.dropna()-risk_free,
+                   factor_returns.dropna(), ddof=0)[0][1]
+
+    return covar/np.var(factor_returns)
 
 
 def stability_of_timeseries(returns):
