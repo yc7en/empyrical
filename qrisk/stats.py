@@ -590,17 +590,9 @@ def alpha_beta(returns, factor_returns, risk_free=0.0, period=DAILY,
         Beta.
 
     """
-    if len(returns) < 2:
-        return np.nan, np.nan
-
-    ann_factor = annualization_factor(period, annualization)
-
-    y = (returns - risk_free).loc[factor_returns.index].dropna()
-    x = (factor_returns - risk_free).loc[y.index].dropna()
-    y = y.loc[x.index]
-    beta, alpha = stats.linregress(x.values, y.values)[:2]
-
-    return alpha * ann_factor, beta
+    b = beta(returns, factor_returns, risk_free)
+    a = alpha(returns, factor_returns, risk_free, period, annualization)
+    return a, b
 
 
 def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,

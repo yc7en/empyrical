@@ -187,7 +187,8 @@ class TestStats(TestCase):
         else:
             assert constant*max_dd >= transformed_dd
 
-    # Translating returns by a positive constant should increase the maximum
+    # Maximum drawdown is always less than or equal to zero. Translating
+    # returns by a positive constant should increase the maximum
     # drawdown to a maximum of zero. Translating by a negative constant
     # decreases the maximum drawdown.
     @parameterized.expand([
@@ -303,12 +304,13 @@ class TestStats(TestCase):
             DECIMAL_PLACES)
 
     # Translating the returns and required returns by the same amount
-    # should not change the sharpe ratio.
+    # does not change the sharpe ratio.
     @parameterized.expand([
         (noise_uniform, 0, .005),
         (noise_uniform, 0.005, .005)
     ])
-    def test_sharpe_translation(self, returns, required_return, translation):
+    def test_sharpe_translation_same(self, returns, required_return,
+                                     translation):
         sr = qrisk.sharpe_ratio(returns, required_return)
         sr_depressed = qrisk.sharpe_ratio(
             returns-translation,
@@ -324,6 +326,25 @@ class TestStats(TestCase):
             sr,
             sr_raised,
             DECIMAL_PLACES)
+
+    # Translating the returns and required returns by the different amount
+    # yields different sharpe ratios
+    @parameterized.expand([
+        (noise_uniform, 0, .0002, .0001),
+        (noise_uniform, 0.005, .0001, .0002)
+    ])
+    def test_sharpe_translation_diff(self, returns, required_return,
+                                     translation_returns,
+                                     translation_required):
+        sr = qrisk.sharpe_ratio(returns, required_return)
+        sr_depressed = qrisk.sharpe_ratio(
+            returns-translation_returns,
+            required_return-translation_required)
+        sr_raised = qrisk.sharpe_ratio(
+            returns+translation_returns,
+            required_return+translation_required)
+        assert sr != sr_depressed
+        assert sr != sr_raised
 
     # Translating the required return inversely affects the sharpe ratio.
     @parameterized.expand([
@@ -527,7 +548,8 @@ class TestStats(TestCase):
         (noise_uniform, 0, .005),
         (noise_uniform, 0.005, .005)
     ])
-    def test_sortino_translation(self, returns, required_return, translation):
+    def test_sortino_translation_same(self, returns, required_return,
+                                      translation):
         sr = qrisk.sortino_ratio(returns, required_return)
         sr_depressed = qrisk.sortino_ratio(
             returns-translation,
@@ -543,6 +565,25 @@ class TestStats(TestCase):
             sr,
             sr_raised,
             DECIMAL_PLACES)
+
+    # Translating the returns and required returns by the same amount
+    # should not change the sortino ratio.
+    @parameterized.expand([
+        (noise_uniform, 0, 0, .001),
+        (noise_uniform, 0.005, .001, 0)
+    ])
+    def test_sortino_translation_diff(self, returns, required_return,
+                                      translation_returns,
+                                      translation_required):
+        sr = qrisk.sortino_ratio(returns, required_return)
+        sr_depressed = qrisk.sortino_ratio(
+            returns-translation_returns,
+            required_return-translation_required)
+        sr_raised = qrisk.sortino_ratio(
+            returns+translation_returns,
+            required_return+translation_required)
+        assert sr != sr_depressed
+        assert sr != sr_raised
 
     # Regressive tests for information ratio
     @parameterized.expand([
@@ -602,9 +643,9 @@ class TestStats(TestCase):
     @parameterized.expand([
         (empty_returns, simple_benchmark, (np.nan, np.nan)),
         (one_return, one_return, (np.nan, np.nan)),
-        (mixed_returns, simple_benchmark, (np.nan, np.nan)),
-        (mixed_returns, negative_returns, (-8.3066666666666666,
-                                           -0.71296296296296291)),
+        (mixed_returns, simple_benchmark[1:], (np.nan, np.nan)),
+        (mixed_returns, negative_returns[1:], (-8.3066666666666666,
+                                               -0.71296296296296291)),
         (mixed_returns, mixed_returns, (0.0, 1.0)),
         (mixed_returns, -mixed_returns, (0.0, -1.0)),
     ])
@@ -637,7 +678,7 @@ class TestStats(TestCase):
         (0, .001),
         (0.01, .001),
     ])
-    def test_alphabeta_translation(self, mean_returns, translation):
+    def test_alpha_beta_translation(self, mean_returns, translation):
         # Generate correlated returns and benchmark.
         std_returns = 0.01
         correlation = 0.8
@@ -684,10 +725,9 @@ class TestStats(TestCase):
     # Test alpha/beta with a smaller and larger correlation values.
     @parameterized.expand([
         (0.25, .75),
-        (.1, .9),
-        (.01, .1)
+        (.1, .9)
     ])
-    def test_alphabeta_correlation(self, corr_less, corr_more):
+    def test_alpha_beta_correlation(self, corr_less, corr_more):
         mean_returns = 0.01
         mean_bench = .001
         std_returns = 0.01
