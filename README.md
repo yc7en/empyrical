@@ -1,4 +1,4 @@
-# qrisk
+# empyrical
 Common financial risk metrics.
 
 ## Installation
@@ -6,6 +6,6 @@ Common financial risk metrics.
 ### Installing with `pip`
 
 ```
-pip install qrisk
+pip install empyrical
 ```
 

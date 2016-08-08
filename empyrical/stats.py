@@ -19,7 +19,7 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 
-from qrisk.utils import nanmean
+from empyrical.utils import nanmean
 
 
 APPROX_BDAYS_PER_MONTH = 21
@@ -132,7 +132,7 @@ def aggregate_returns(returns, convert_to):
     ----------
     returns : pd.Series
        Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
     convert_to : str
         Can be 'weekly', 'monthly', or 'yearly'.
 
@@ -167,7 +167,7 @@ def max_drawdown(returns):
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
 
     Returns
     -------
@@ -194,7 +194,7 @@ def annual_return(returns, period=DAILY, annualization=None):
     ----------
     returns : pd.Series
         Periodic returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
     period : str, optional
         Defines the periodicity of the 'returns' data for purposes of
         annualizing. Value ignored if `annualization` parameter is specified.
@@ -237,7 +237,7 @@ def annual_volatility(returns, period=DAILY, alpha=2.0,
     ----------
     returns : pd.Series
         Periodic returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
     period : str, optional
         Defines the periodicity of the 'returns' data for purposes of
         annualizing. Value ignored if `annualization` parameter is specified.
@@ -276,7 +276,7 @@ def calmar_ratio(returns, period=DAILY, annualization=None):
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
     period : str, optional
         Defines the periodicity of the 'returns' data for purposes of
         annualizing. Value ignored if `annualization` parameter is specified.
@@ -325,7 +325,7 @@ def omega_ratio(returns, risk_free=0.0, required_return=0.0,
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
     risk_free : int, float
         Constant risk-free return throughout the period
     required_return : float, optional
@@ -379,7 +379,7 @@ def sharpe_ratio(returns, risk_free=0, period=DAILY, annualization=None):
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
     risk_free : int, float
         Constant risk-free return throughout the period.
     period : str, optional
@@ -430,7 +430,7 @@ def sortino_ratio(returns, required_return=0, period=DAILY,
     ----------
     returns : pd.Series or pd.DataFrame
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
     required_return: float / series
         minimum acceptable return
     period : str, optional
@@ -479,7 +479,7 @@ def downside_risk(returns, required_return=0, period=DAILY,
     ----------
     returns : pd.Series or pd.DataFrame
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
     required_return: float / series
         minimum acceptable return
     period : str, optional
@@ -528,7 +528,7 @@ def information_ratio(returns, factor_returns):
     ----------
     returns : pd.Series or pd.DataFrame
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
     factor_returns: float / series
         Benchmark return to compare returns against.
 
@@ -562,7 +562,7 @@ def alpha_beta(returns, factor_returns, risk_free=0.0, period=DAILY,
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
     factor_returns : pd.Series
          Daily noncumulative returns of the factor to which beta is
          computed. Usually a benchmark such as the market.
@@ -603,7 +603,7 @@ def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
     factor_returns : pd.Series
          Daily noncumulative returns of the factor to which beta is
          computed. Usually a benchmark such as the market.
@@ -622,7 +622,7 @@ def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
         Used to suppress default values available in `period` to convert
         returns into annual returns. Value should be the annual frequency of
         `returns`.
-        - See full explanation in :func:`~qrisk.stats.annual_return`.
+        - See full explanation in :func:`~empyrical.stats.annual_return`.
 
     Returns
     -------
@@ -644,7 +644,7 @@ def beta(returns, factor_returns, risk_free=0.0):
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
     factor_returns : pd.Series
          Daily noncumulative returns of the factor to which beta is
          computed. Usually a benchmark such as the market.
@@ -677,7 +677,7 @@ def stability_of_timeseries(returns):
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-        - See full explanation in :func:`~qrisk.stats.cum_returns`.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
 
     Returns
     -------
@@ -705,7 +705,7 @@ def tail_ratio(returns):
     ----------
     returns : pd.Series
         Daily returns of the strategy, noncumulative.
-         - See full explanation in :func:`~qrisk.stats.cum_returns`.
+         - See full explanation in :func:`~empyrical.stats.cum_returns`.
 
     Returns
     -------
