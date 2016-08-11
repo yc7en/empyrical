@@ -1,2 +1,2 @@
 include versioneer.py
-include qrisk/_version.py
+include empyrical/_version.py

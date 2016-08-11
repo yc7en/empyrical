@@ -18,10 +18,10 @@ from setuptools import setup
 import versioneer
 
 
-DISTNAME = "qrisk"
-DESCRIPTION = """qrisk is a Python library with performance and risk statistics
+DISTNAME = "empyrical"
+DESCRIPTION = """empyrical is a Python library with performance and risk statistics
 commonly used in quantitative finance"""
-LONG_DESCRIPTION = """qrisk is a Python library with performance and risk
+LONG_DESCRIPTION = """empyrical is a Python library with performance and risk
 statistics commonly used in quantitative finance by `Quantopian Inc`_.
 
 .. _Quantopian Inc: https://www.quantopian.com
@@ -32,7 +32,7 @@ MAINTAINER = "Quantopian Inc"
 MAINTAINER_EMAIL = "opensource@quantopian.com"
 AUTHOR = "Quantopian Inc"
 AUTHOR_EMAIL = "opensource@quantopian.com"
-URL = "https://github.com/quantopian/qrisk"
+URL = "https://github.com/quantopian/empyrical"
 LICENSE = "Apache License, Version 2.0"
 
 classifiers = [
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         license=LICENSE,
         url=URL,
         long_description=LONG_DESCRIPTION,
-        packages=["qrisk", "qrisk.tests"],
+        packages=["empyrical", "empyrical.tests"],
         classifiers=classifiers,
         install_requires=requirements,
         extras_require=extras_requirements,

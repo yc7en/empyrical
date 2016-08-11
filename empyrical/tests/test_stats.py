@@ -8,7 +8,7 @@ import random
 import numpy as np
 import pandas as pd
 
-import qrisk
+import empyrical
 
 DECIMAL_PLACES = 8
 
@@ -121,7 +121,8 @@ class TestStats(TestCase):
                                -0.22818, -0.27449, -0.33253, -0.36590])
     ])
     def test_cum_returns(self, returns, starting_value, expected):
-        cum_returns = qrisk.cum_returns(returns, starting_value=starting_value)
+        cum_returns = empyrical.cum_returns(returns,
+                                            starting_value=starting_value)
         for i in range(returns.size):
             assert_almost_equal(
                 cum_returns[i],
@@ -129,19 +130,20 @@ class TestStats(TestCase):
                 4)
 
     @parameterized.expand([
-        (simple_benchmark, qrisk.WEEKLY, [0.010000000000000009,
-                                          0.072135352107010053,
-                                          0.010000000000000009]),
-        (simple_benchmark, qrisk.MONTHLY, [0.020100000000000007,
-                                           0.072135352107010053]),
-        (simple_benchmark, qrisk.YEARLY, [0.093685272684361109]),
-        (weekly_returns, qrisk.MONTHLY, [0.0, 0.087891200000000058,
-                                         -0.04500459999999995]),
-        (weekly_returns, qrisk.YEARLY, [0.038931091700480147]),
-        (monthly_returns, qrisk.YEARLY, [0.038931091700480147])
+        (simple_benchmark, empyrical.WEEKLY, [0.010000000000000009,
+                                              0.072135352107010053,
+                                              0.010000000000000009]),
+        (simple_benchmark, empyrical.MONTHLY, [0.020100000000000007,
+                                               0.072135352107010053]),
+        (simple_benchmark, empyrical.YEARLY, [0.093685272684361109]),
+        (weekly_returns, empyrical.MONTHLY, [0.0, 0.087891200000000058,
+                                             -0.04500459999999995]),
+        (weekly_returns, empyrical.YEARLY, [0.038931091700480147]),
+        (monthly_returns, empyrical.YEARLY, [0.038931091700480147])
     ])
     def test_aggregate_returns(self, returns, convert_to, expected):
-        returns = qrisk.aggregate_returns(returns, convert_to).values.tolist()
+        returns = empyrical.aggregate_returns(returns,
+                                              convert_to).values.tolist()
         for i, v in enumerate(returns):
             assert_almost_equal(
                 v,
@@ -162,7 +164,7 @@ class TestStats(TestCase):
     ])
     def test_max_drawdown(self, returns, expected):
         assert_almost_equal(
-            qrisk.max_drawdown(
+            empyrical.max_drawdown(
                 returns
             ),
             expected,
@@ -180,8 +182,8 @@ class TestStats(TestCase):
         (noise, 0.5)
     ])
     def test_max_drawdown_transformation(self, returns, constant):
-        max_dd = qrisk.max_drawdown(returns)
-        transformed_dd = qrisk.max_drawdown(constant*returns)
+        max_dd = empyrical.max_drawdown(returns)
+        transformed_dd = empyrical.max_drawdown(constant*returns)
         if constant >= 1:
             assert constant*max_dd <= transformed_dd
         else:
@@ -200,20 +202,20 @@ class TestStats(TestCase):
     def test_max_drawdown_translation(self, returns, constant):
         depressed_returns = returns-constant
         raised_returns = returns+constant
-        max_dd = qrisk.max_drawdown(returns)
-        depressed_dd = qrisk.max_drawdown(depressed_returns)
-        raised_dd = qrisk.max_drawdown(raised_returns)
+        max_dd = empyrical.max_drawdown(returns)
+        depressed_dd = empyrical.max_drawdown(depressed_returns)
+        raised_dd = empyrical.max_drawdown(raised_returns)
         assert max_dd <= raised_dd
         assert depressed_dd <= max_dd
 
     @parameterized.expand([
-        (mixed_returns, qrisk.DAILY, 1.9135925373194231),
-        (weekly_returns, qrisk.WEEKLY, 0.24690830513998208),
-        (monthly_returns, qrisk.MONTHLY, 0.052242061386048144)
+        (mixed_returns, empyrical.DAILY, 1.9135925373194231),
+        (weekly_returns, empyrical.WEEKLY, 0.24690830513998208),
+        (monthly_returns, empyrical.MONTHLY, 0.052242061386048144)
     ])
     def test_annual_ret(self, returns, period, expected):
         assert_almost_equal(
-            qrisk.annual_return(
+            empyrical.annual_return(
                 returns,
                 period=period
             ),
@@ -221,14 +223,14 @@ class TestStats(TestCase):
             DECIMAL_PLACES)
 
     @parameterized.expand([
-        (simple_benchmark, qrisk.DAILY, 0.0),
-        (mixed_returns, qrisk.DAILY, 0.8552777326693359),
-        (weekly_returns, qrisk.WEEKLY, 0.38851569394870583),
-        (monthly_returns, qrisk.MONTHLY, 0.18663690238892558)
+        (simple_benchmark, empyrical.DAILY, 0.0),
+        (mixed_returns, empyrical.DAILY, 0.8552777326693359),
+        (weekly_returns, empyrical.WEEKLY, 0.38851569394870583),
+        (monthly_returns, empyrical.MONTHLY, 0.18663690238892558)
     ])
     def test_annual_volatility(self, returns, period, expected):
         assert_almost_equal(
-            qrisk.annual_volatility(
+            empyrical.annual_volatility(
                 returns,
                 period=period
             ),
@@ -237,15 +239,15 @@ class TestStats(TestCase):
         )
 
     @parameterized.expand([
-        (empty_returns, qrisk.DAILY, np.nan),
-        (one_return, qrisk.DAILY, np.nan),
-        (mixed_returns, qrisk.DAILY, 19.135925373194233),
-        (weekly_returns, qrisk.WEEKLY, 2.4690830513998208),
-        (monthly_returns, qrisk.MONTHLY, 0.52242061386048144)
+        (empty_returns, empyrical.DAILY, np.nan),
+        (one_return, empyrical.DAILY, np.nan),
+        (mixed_returns, empyrical.DAILY, 19.135925373194233),
+        (weekly_returns, empyrical.WEEKLY, 2.4690830513998208),
+        (monthly_returns, empyrical.MONTHLY, 0.52242061386048144)
     ])
     def test_calmar(self, returns, period, expected):
         assert_almost_equal(
-            qrisk.calmar_ratio(
+            empyrical.calmar_ratio(
                 returns,
                 period=period
             ),
@@ -267,7 +269,7 @@ class TestStats(TestCase):
     def test_omega(self, returns, risk_free, required_return,
                    expected):
         assert_almost_equal(
-            qrisk.omega_ratio(
+            empyrical.omega_ratio(
                 returns,
                 risk_free=risk_free,
                 required_return=required_return),
@@ -282,8 +284,8 @@ class TestStats(TestCase):
     ])
     def test_omega_returns(self, returns, required_return_less,
                            required_return_more):
-        assert qrisk.omega_ratio(returns, required_return_less) > \
-            qrisk.omega_ratio(returns, required_return_more)
+        assert empyrical.omega_ratio(returns, required_return_less) > \
+            empyrical.omega_ratio(returns, required_return_more)
 
     # Regressive sharpe ratio tests
     @parameterized.expand([
@@ -297,7 +299,7 @@ class TestStats(TestCase):
     ])
     def test_sharpe_ratio(self, returns, risk_free, expected):
         assert_almost_equal(
-            qrisk.sharpe_ratio(
+            empyrical.sharpe_ratio(
                 np.asarray(returns),
                 risk_free=risk_free),
             expected,
@@ -311,11 +313,11 @@ class TestStats(TestCase):
     ])
     def test_sharpe_translation_same(self, returns, required_return,
                                      translation):
-        sr = qrisk.sharpe_ratio(returns, required_return)
-        sr_depressed = qrisk.sharpe_ratio(
+        sr = empyrical.sharpe_ratio(returns, required_return)
+        sr_depressed = empyrical.sharpe_ratio(
             returns-translation,
             required_return-translation)
-        sr_raised = qrisk.sharpe_ratio(
+        sr_raised = empyrical.sharpe_ratio(
             returns+translation,
             required_return+translation)
         assert_almost_equal(
@@ -336,11 +338,11 @@ class TestStats(TestCase):
     def test_sharpe_translation_diff(self, returns, required_return,
                                      translation_returns,
                                      translation_required):
-        sr = qrisk.sharpe_ratio(returns, required_return)
-        sr_depressed = qrisk.sharpe_ratio(
+        sr = empyrical.sharpe_ratio(returns, required_return)
+        sr_depressed = empyrical.sharpe_ratio(
             returns-translation_returns,
             required_return-translation_required)
-        sr_raised = qrisk.sharpe_ratio(
+        sr_raised = empyrical.sharpe_ratio(
             returns+translation_returns,
             required_return+translation_required)
         assert sr != sr_depressed
@@ -352,11 +354,11 @@ class TestStats(TestCase):
         (noise, 0, .005)
     ])
     def test_sharpe_translation_1(self, returns, required_return, translation):
-        sr = qrisk.sharpe_ratio(returns, required_return)
-        sr_depressed = qrisk.sharpe_ratio(
+        sr = empyrical.sharpe_ratio(returns, required_return)
+        sr_depressed = empyrical.sharpe_ratio(
             returns,
             required_return-translation)
-        sr_raised = qrisk.sharpe_ratio(
+        sr_raised = empyrical.sharpe_ratio(
             returns,
             required_return+translation)
         assert sr_depressed > sr
@@ -378,32 +380,32 @@ class TestStats(TestCase):
             [random.gauss(.01, large) for i in range(1000)],
             index=index
         )
-        assert qrisk.sharpe_ratio(smaller_normal, 0.001) > \
-            qrisk.sharpe_ratio(larger_normal, 0.001)
+        assert empyrical.sharpe_ratio(smaller_normal, 0.001) > \
+            empyrical.sharpe_ratio(larger_normal, 0.001)
 
     # Regressive downside risk tests
     @parameterized.expand([
-        (empty_returns, 0.0, qrisk.DAILY, np.nan),
-        (one_return, 0.0, qrisk.DAILY, 0.0),
-        (mixed_returns, mixed_returns, qrisk.DAILY, 0.0),
-        (mixed_returns, 0.0, qrisk.DAILY, 0.5699122739510003),
-        (mixed_returns, 0.1, qrisk.DAILY, 1.7023513150933332),
-        (weekly_returns, 0.0, qrisk.WEEKLY, 0.25888650451930134),
-        (weekly_returns, 0.1, qrisk.WEEKLY, 0.7733045971672482),
-        (monthly_returns, 0.0, qrisk.MONTHLY, 0.1243650540411842),
-        (monthly_returns, 0.1, qrisk.MONTHLY, 0.37148351242013422),
-        (df_simple, 0.0, qrisk.DAILY,
+        (empty_returns, 0.0, empyrical.DAILY, np.nan),
+        (one_return, 0.0, empyrical.DAILY, 0.0),
+        (mixed_returns, mixed_returns, empyrical.DAILY, 0.0),
+        (mixed_returns, 0.0, empyrical.DAILY, 0.5699122739510003),
+        (mixed_returns, 0.1, empyrical.DAILY, 1.7023513150933332),
+        (weekly_returns, 0.0, empyrical.WEEKLY, 0.25888650451930134),
+        (weekly_returns, 0.1, empyrical.WEEKLY, 0.7733045971672482),
+        (monthly_returns, 0.0, empyrical.MONTHLY, 0.1243650540411842),
+        (monthly_returns, 0.1, empyrical.MONTHLY, 0.37148351242013422),
+        (df_simple, 0.0, empyrical.DAILY,
          pd.Series([0.20671788246185202, 0.083495680595704475],
                    index=['one', 'two'])),
-        (df_week, 0.0, qrisk.WEEKLY,
+        (df_week, 0.0, empyrical.WEEKLY,
          pd.Series([0.093902996054410062, 0.037928477556776516],
                    index=['one', 'two'])),
-        (df_month, 0.0, qrisk.MONTHLY,
+        (df_month, 0.0, empyrical.MONTHLY,
          pd.Series([0.045109540184877193, 0.018220251263412916],
                    index=['one', 'two']))
     ])
     def test_downside_risk(self, returns, required_return, period, expected):
-        downside_risk = qrisk.downside_risk(
+        downside_risk = empyrical.downside_risk(
                         returns,
                         required_return=required_return,
                         period=period)
@@ -429,9 +431,9 @@ class TestStats(TestCase):
         noisy_returns_1 = noise[0:250].add(flat_line[250:], fill_value=0)
         noisy_returns_2 = noise[0:500].add(flat_line[500:], fill_value=0)
         noisy_returns_3 = noise[0:750].add(flat_line[750:], fill_value=0)
-        dr_1 = qrisk.downside_risk(noisy_returns_1, flat_line)
-        dr_2 = qrisk.downside_risk(noisy_returns_2, flat_line)
-        dr_3 = qrisk.downside_risk(noisy_returns_3, flat_line)
+        dr_1 = empyrical.downside_risk(noisy_returns_1, flat_line)
+        dr_2 = empyrical.downside_risk(noisy_returns_2, flat_line)
+        dr_3 = empyrical.downside_risk(noisy_returns_3, flat_line)
         assert dr_1 <= dr_2
         assert dr_2 <= dr_3
 
@@ -441,9 +443,9 @@ class TestStats(TestCase):
         (noise_uniform, .005)
     ])
     def test_downside_risk_trans(self, returns, required_return):
-        dr_0 = qrisk.downside_risk(returns, -required_return)
-        dr_1 = qrisk.downside_risk(returns, 0)
-        dr_2 = qrisk.downside_risk(returns, required_return)
+        dr_0 = empyrical.downside_risk(returns, -required_return)
+        dr_1 = empyrical.downside_risk(returns, 0)
+        dr_2 = empyrical.downside_risk(returns, required_return)
         assert dr_0 <= dr_1
         assert dr_1 <= dr_2
 
@@ -463,33 +465,34 @@ class TestStats(TestCase):
             [random.gauss(0, larger_std) for i in range(1000)],
             index=pd.date_range('2000-1-30', periods=1000, freq='D')
         )
-        assert qrisk.downside_risk(less_noise) < \
-            qrisk.downside_risk(more_noise)
+        assert empyrical.downside_risk(less_noise) < \
+            empyrical.downside_risk(more_noise)
 
     # Regressive sortino ratio tests
     @parameterized.expand([
-        (empty_returns, 0.0, qrisk.DAILY, np.nan),
-        (one_return, 0.0, qrisk.DAILY, np.nan),
-        (mixed_returns, mixed_returns, qrisk.DAILY, np.nan),
-        (mixed_returns, 0.0, qrisk.DAILY, 2.456518422202588),
-        (mixed_returns, simple_benchmark, qrisk.DAILY, -1.7457431218879385),
-        (positive_returns, 0.0, qrisk.DAILY, np.inf),
-        (negative_returns, 0.0, qrisk.DAILY, -13.532743075043401),
-        (simple_benchmark, 0.0, qrisk.DAILY, np.inf),
-        (weekly_returns, 0.0, qrisk.WEEKLY, 0.50690062680370862),
-        (monthly_returns, 0.0, qrisk.MONTHLY, 0.11697706772393276),
-        (df_simple, 0.0, qrisk.DAILY,
+        (empty_returns, 0.0, empyrical.DAILY, np.nan),
+        (one_return, 0.0, empyrical.DAILY, np.nan),
+        (mixed_returns, mixed_returns, empyrical.DAILY, np.nan),
+        (mixed_returns, 0.0, empyrical.DAILY, 2.456518422202588),
+        (mixed_returns, simple_benchmark, empyrical.DAILY,
+            -1.7457431218879385),
+        (positive_returns, 0.0, empyrical.DAILY, np.inf),
+        (negative_returns, 0.0, empyrical.DAILY, -13.532743075043401),
+        (simple_benchmark, 0.0, empyrical.DAILY, np.inf),
+        (weekly_returns, 0.0, empyrical.WEEKLY, 0.50690062680370862),
+        (monthly_returns, 0.0, empyrical.MONTHLY, 0.11697706772393276),
+        (df_simple, 0.0, empyrical.DAILY,
          pd.Series([3.0639640966566306, 38.090963117002495],
                    index=['one', 'two'])),
-        (df_week, 0.0, qrisk.WEEKLY,
+        (df_week, 0.0, empyrical.WEEKLY,
          pd.Series([0.63224655962755871, 7.8600400082703556],
                    index=['one', 'two'])),
-        (df_month, 0.0, qrisk.MONTHLY,
+        (df_month, 0.0, empyrical.MONTHLY,
          pd.Series([0.14590305222174432, 1.8138553865239282],
                    index=['one', 'two']))
     ])
     def test_sortino(self, returns, required_return, period, expected):
-        sortino_ratio = qrisk.sortino_ratio(
+        sortino_ratio = empyrical.sortino_ratio(
                         returns,
                         required_return=required_return,
                         period=period)
@@ -513,14 +516,14 @@ class TestStats(TestCase):
         (noise, 0),
     ])
     def test_sortino_add_noise(self, returns, required_return):
-        sr_1 = qrisk.sortino_ratio(returns, required_return)
+        sr_1 = empyrical.sortino_ratio(returns, required_return)
         upside_values = returns[returns > required_return].index.tolist()
         # Add large losses at random upside locations
         loss_loc = random.sample(upside_values, 2)
         returns[loss_loc[0]] = -0.01
-        sr_2 = qrisk.sortino_ratio(returns, required_return)
+        sr_2 = empyrical.sortino_ratio(returns, required_return)
         returns[loss_loc[1]] = -0.01
-        sr_3 = qrisk.sortino_ratio(returns, required_return)
+        sr_3 = empyrical.sortino_ratio(returns, required_return)
         assert sr_1 > sr_2
         assert sr_2 > sr_3
 
@@ -531,14 +534,14 @@ class TestStats(TestCase):
         (noise, 0)
     ])
     def test_sortino_sub_noise(self, returns, required_return):
-        sr_1 = qrisk.sortino_ratio(returns, required_return)
+        sr_1 = empyrical.sortino_ratio(returns, required_return)
         downside_values = returns[returns < required_return].index.tolist()
         # Replace some values below the required return to the required return
         loss_loc = random.sample(downside_values, 2)
         returns[loss_loc[0]] = required_return
-        sr_2 = qrisk.sortino_ratio(returns, required_return)
+        sr_2 = empyrical.sortino_ratio(returns, required_return)
         returns[loss_loc[1]] = required_return
-        sr_3 = qrisk.sortino_ratio(returns, required_return)
+        sr_3 = empyrical.sortino_ratio(returns, required_return)
         assert sr_1 <= sr_2
         assert sr_2 <= sr_3
 
@@ -550,11 +553,11 @@ class TestStats(TestCase):
     ])
     def test_sortino_translation_same(self, returns, required_return,
                                       translation):
-        sr = qrisk.sortino_ratio(returns, required_return)
-        sr_depressed = qrisk.sortino_ratio(
+        sr = empyrical.sortino_ratio(returns, required_return)
+        sr_depressed = empyrical.sortino_ratio(
             returns-translation,
             required_return-translation)
-        sr_raised = qrisk.sortino_ratio(
+        sr_raised = empyrical.sortino_ratio(
             returns+translation,
             required_return+translation)
         assert_almost_equal(
@@ -575,11 +578,11 @@ class TestStats(TestCase):
     def test_sortino_translation_diff(self, returns, required_return,
                                       translation_returns,
                                       translation_required):
-        sr = qrisk.sortino_ratio(returns, required_return)
-        sr_depressed = qrisk.sortino_ratio(
+        sr = empyrical.sortino_ratio(returns, required_return)
+        sr_depressed = empyrical.sortino_ratio(
             returns-translation_returns,
             required_return-translation_required)
-        sr_raised = qrisk.sortino_ratio(
+        sr_raised = empyrical.sortino_ratio(
             returns+translation_returns,
             required_return+translation_required)
         assert sr != sr_depressed
@@ -595,7 +598,7 @@ class TestStats(TestCase):
     ])
     def test_information_ratio(self, returns, factor_returns, expected):
         assert_almost_equal(
-            qrisk.information_ratio(returns, factor_returns),
+            empyrical.information_ratio(returns, factor_returns),
             expected,
             DECIMAL_PLACES)
 
@@ -610,9 +613,9 @@ class TestStats(TestCase):
         noisy_returns_1 = noise_line[0:250].add(benchmark[250:], fill_value=0)
         noisy_returns_2 = noise_line[0:500].add(benchmark[500:], fill_value=0)
         noisy_returns_3 = noise_line[0:750].add(benchmark[750:], fill_value=0)
-        ir_1 = qrisk.information_ratio(noisy_returns_1, benchmark)
-        ir_2 = qrisk.information_ratio(noisy_returns_2, benchmark)
-        ir_3 = qrisk.information_ratio(noisy_returns_3, benchmark)
+        ir_1 = empyrical.information_ratio(noisy_returns_1, benchmark)
+        ir_2 = empyrical.information_ratio(noisy_returns_2, benchmark)
+        ir_3 = empyrical.information_ratio(noisy_returns_3, benchmark)
         assert abs(ir_1) < abs(ir_2)
         assert abs(ir_2) < abs(ir_3)
 
@@ -625,15 +628,15 @@ class TestStats(TestCase):
         (neg_line, inv_noise, flat_line_1)
     ])
     def test_information_ratio_trans(self, returns, add_noise, translation):
-        ir = qrisk.information_ratio(
+        ir = empyrical.information_ratio(
             returns+add_noise,
             returns
         )
-        raised_ir = qrisk.information_ratio(
+        raised_ir = empyrical.information_ratio(
             returns+add_noise+translation,
             returns
         )
-        depressed_ir = qrisk.information_ratio(
+        depressed_ir = empyrical.information_ratio(
             returns+add_noise-translation,
             returns
         )
@@ -651,11 +654,11 @@ class TestStats(TestCase):
     ])
     def test_alpha_beta(self, returns, benchmark, expected):
         assert_almost_equal(
-            qrisk.alpha_beta(returns, benchmark)[0],
+            empyrical.alpha_beta(returns, benchmark)[0],
             expected[0],
             DECIMAL_PLACES)
         assert_almost_equal(
-            qrisk.alpha_beta(returns, benchmark)[1],
+            empyrical.alpha_beta(returns, benchmark)[1],
             expected[1],
             DECIMAL_PLACES)
 
@@ -669,7 +672,7 @@ class TestStats(TestCase):
     ])
     def test_alpha(self, returns, benchmark, expected):
         assert_almost_equal(
-            qrisk.alpha(returns, benchmark),
+            empyrical.alpha(returns, benchmark),
             expected,
             DECIMAL_PLACES)
 
@@ -696,11 +699,11 @@ class TestStats(TestCase):
         # Translate returns and generate alphas and betas.
         returns_depressed = returns-translation
         returns_raised = returns+translation
-        (alpha_depressed, beta_depressed) = qrisk.alpha_beta(
+        (alpha_depressed, beta_depressed) = empyrical.alpha_beta(
             returns_depressed, benchmark)
-        (alpha_standard, beta_standard) = qrisk.alpha_beta(
+        (alpha_standard, beta_standard) = empyrical.alpha_beta(
             returns, benchmark)
-        (alpha_raised, beta_raised) = qrisk.alpha_beta(
+        (alpha_raised, beta_raised) = empyrical.alpha_beta(
             returns_raised, benchmark)
         # Alpha should change proportionally to how much returns were
         # translated.
@@ -750,8 +753,10 @@ class TestStats(TestCase):
         returns_more = pd.Series(ret_more, index=index)
         benchmark_more = pd.Series(bench_more, index=index)
         # Calculate alpha/beta values
-        alpha_less, beta_less = qrisk.alpha_beta(returns_less, benchmark_less)
-        alpha_more, beta_more = qrisk.alpha_beta(returns_more, benchmark_more)
+        alpha_less, beta_less = empyrical.alpha_beta(returns_less,
+                                                     benchmark_less)
+        alpha_more, beta_more = empyrical.alpha_beta(returns_more,
+                                                     benchmark_more)
         # Alpha determines by how much returns vary from the benchmark return.
         # A lower correlation leads to higher alpha.
         assert alpha_less > alpha_more
@@ -768,7 +773,7 @@ class TestStats(TestCase):
     ])
     def test_beta(self, returns, benchmark, expected):
         assert_almost_equal(
-            qrisk.beta(returns, benchmark),
+            empyrical.beta(returns, benchmark),
             expected,
             DECIMAL_PLACES)
 
@@ -781,14 +786,14 @@ class TestStats(TestCase):
         (mixed_returns, -mixed_returns),
     ])
     def test_alpha_beta_equality(self, returns, benchmark):
-        alpha_beta = qrisk.alpha_beta(returns, benchmark)
+        alpha_beta = empyrical.alpha_beta(returns, benchmark)
         assert_almost_equal(
             alpha_beta[0],
-            qrisk.alpha(returns, benchmark),
+            empyrical.alpha(returns, benchmark),
             DECIMAL_PLACES)
         assert_almost_equal(
             alpha_beta[1],
-            qrisk.beta(returns, benchmark),
+            empyrical.beta(returns, benchmark),
             DECIMAL_PLACES)
 
     @parameterized.expand([
@@ -799,7 +804,7 @@ class TestStats(TestCase):
     ])
     def test_stability_of_timeseries(self, returns, expected):
         assert_almost_equal(
-            qrisk.stability_of_timeseries(returns),
+            empyrical.stability_of_timeseries(returns),
             expected,
             DECIMAL_PLACES)
 
@@ -811,6 +816,6 @@ class TestStats(TestCase):
     ])
     def test_tail_ratio(self, returns, expected):
         assert_almost_equal(
-            qrisk.tail_ratio(returns),
+            empyrical.tail_ratio(returns),
             expected,
             1)

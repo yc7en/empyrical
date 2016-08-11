@@ -41,8 +41,8 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = "pep440"
     cfg.tag_prefix = ""
-    cfg.parentdir_prefix = "qrisk-"
-    cfg.versionfile_source = "qrisk/_version.py"
+    cfg.parentdir_prefix = "empyrical-"
+    cfg.versionfile_source = "empyrical/_version.py"
     cfg.verbose = False
     return cfg
 
