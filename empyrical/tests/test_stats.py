@@ -837,3 +837,62 @@ class TestStats(TestCase):
             empyrical.tail_ratio(returns),
             expected,
             1)
+
+    # Regression tests for CAGR.
+    @parameterized.expand([
+        (empty_returns, "daily", np.nan),
+        (one_return, "daily", 11.274002099240244),
+        (mixed_returns, "daily", 1.9135925373194231),
+        (flat_line_1, "daily", 11.274002099240256),
+        (pd.Series(np.array(
+            [3., 3., 3.])/100,
+            index=pd.date_range('2000-1-30', periods=3, freq='A')
+        ), 'yearly', 0.03)
+    ])
+    def test_cagr(self, returns, period, expected):
+        assert_almost_equal(
+            empyrical.cagr(returns, period=period),
+            expected,
+            DECIMAL_PLACES)
+
+    # CAGR is calculated by the starting and ending value of returns,
+    # translating returns by a constant will change cagr in the same
+    # direction of translation.
+    @parameterized.expand([
+        (noise, .01),
+        (noise_uniform, .01)
+    ])
+    def test_cagr_translation(self, returns, constant):
+        cagr_depressed = empyrical.cagr(returns-constant)
+        cagr_unchanged = empyrical.cagr(returns)
+        cagr_raised = empyrical.cagr(returns+constant)
+        self.assertTrue(cagr_depressed < cagr_unchanged)
+        self.assertTrue(cagr_unchanged < cagr_raised)
+
+    # Function does not return np.nan when inputs contain np.nan.
+    @parameterized.expand([
+        (sparse_noise,)
+    ])
+    def test_cagr_with_nan_inputs(self, returns):
+        self.assertNotEqual(empyrical.cagr(returns), np.nan)
+
+    # Adding noise to returns should not significantly alter the cagr values.
+    # Confirm that adding noise does not change cagr values to one
+    # significant digit
+    @parameterized.expand([
+        (pos_line, noise),
+        (pos_line, noise_uniform),
+        (flat_line_1, noise)
+    ])
+    def test_cagr_noisy(self, returns, add_noise):
+        cagr = empyrical.cagr(returns)
+        noisy_cagr_1 = empyrical.cagr(returns+add_noise)
+        noisy_cagr_2 = empyrical.cagr(returns-add_noise)
+        np.testing.assert_approx_equal(
+            cagr,
+            noisy_cagr_1,
+            1)
+        np.testing.assert_approx_equal(
+            cagr,
+            noisy_cagr_2,
+            1)

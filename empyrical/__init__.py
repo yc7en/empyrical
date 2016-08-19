@@ -35,6 +35,7 @@ from .stats import (
     beta,
     stability_of_timeseries,
     tail_ratio,
+    cagr,
     DAILY,
     WEEKLY,
     MONTHLY,

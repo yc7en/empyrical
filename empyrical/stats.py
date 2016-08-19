@@ -36,7 +36,8 @@ YEARLY = 'yearly'
 ANNUALIZATION_FACTORS = {
     DAILY: APPROX_BDAYS_PER_YEAR,
     WEEKLY: WEEKS_PER_YEAR,
-    MONTHLY: MONTHS_PER_YEAR
+    MONTHLY: MONTHS_PER_YEAR,
+    YEARLY: 1
 }
 
 
@@ -113,6 +114,10 @@ def cum_returns(returns, starting_value=0):
     # df_cum.iloc[0] == starting_value
     # Note that we can't add that ourselves as we don't know which dt
     # to use.
+
+    if len(returns) < 1:
+        return np.nan
+
     if pd.isnull(returns.iloc[0]):
         returns.iloc[0] = 0.
 
@@ -727,6 +732,44 @@ def tail_ratio(returns):
         np.abs(np.percentile(returns, 5))
 
 
+def cagr(returns, period=DAILY, annualization=None):
+    """
+    Compute compound annual growth rate.
+
+    Parameters
+    ----------
+    returns : pd.Series
+        Daily returns of the strategy, noncumulative.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
+    period : str, optional
+        Defines the periodicity of the 'returns' data for purposes of
+        annualizing. Value ignored if `annualization` parameter is specified.
+        Defaults are:
+            'monthly':12
+            'weekly': 52
+            'daily': 252
+    annualization : int, optional
+        Used to suppress default values available in `period` to convert
+        returns into annual returns. Value should be the annual frequency of
+        `returns`.
+        - See full explanation in :func:`~empyrical.stats.annual_return`.
+
+    Returns
+    -------
+    float, np.nan
+        The CAGR value.
+
+    """
+    if len(returns) < 1:
+        return np.nan
+
+    ann_factor = annualization_factor(period, annualization)
+    no_years = len(returns) / float(ann_factor)
+    ending_value = cum_returns(returns, starting_value=1).iloc[-1]
+
+    return ending_value ** (1. / no_years) - 1
+
+
 SIMPLE_STAT_FUNCS = [
     annual_return,
     annual_volatility,
@@ -739,6 +782,7 @@ SIMPLE_STAT_FUNCS = [
     stats.skew,
     stats.kurtosis,
     tail_ratio,
+    cagr
 ]
 
 FACTOR_STAT_FUNCS = [
