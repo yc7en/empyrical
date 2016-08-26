@@ -417,7 +417,10 @@ def sharpe_ratio(returns, risk_free=0, period=DAILY, annualization=None):
 
     ann_factor = annualization_factor(period, annualization)
 
-    returns_risk_adj = returns - risk_free
+    if not (isinstance(risk_free, (float, int)) and risk_free == 0):
+        returns_risk_adj = returns - risk_free
+    else:
+        returns_risk_adj = returns
 
     if np.std(returns_risk_adj, ddof=1) == 0:
         return np.nan
@@ -471,7 +474,13 @@ def sortino_ratio(returns, required_return=0, period=DAILY,
     if len(returns) < 2:
         return np.nan
 
-    mu = nanmean(returns - required_return, axis=0)
+    if not (isinstance(required_return, (float, int))
+            and required_return == 0.0):
+        adj_returns = returns - required_return
+    else:
+        adj_returns = returns
+
+    mu = nanmean(adj_returns, axis=0)
     dsr = (_downside_risk if _downside_risk is not None
            else downside_risk(returns, required_return))
     sortino = mu / dsr
@@ -519,7 +528,12 @@ def downside_risk(returns, required_return=0, period=DAILY,
 
     ann_factor = annualization_factor(period, annualization)
 
-    downside_diff = returns - required_return
+    if not (isinstance(required_return, (float, int))
+            and required_return == 0.0):
+        downside_diff = returns - required_return
+    else:
+        downside_diff = returns
+
     mask = downside_diff > 0
     downside_diff[mask] = 0.0
     squares = np.square(downside_diff)
