@@ -427,7 +427,7 @@ def sharpe_ratio(returns, risk_free=0, period=DAILY, annualization=None):
 
 
 def sortino_ratio(returns, required_return=0, period=DAILY,
-                  annualization=None):
+                  annualization=None, _downside_risk=None):
     """
     Determines the Sortino ratio of a strategy.
 
@@ -449,6 +449,9 @@ def sortino_ratio(returns, required_return=0, period=DAILY,
         Used to suppress default values available in `period` to convert
         returns into annual returns. Value should be the annual frequency of
         `returns`.
+    _downside_risk : float, optional
+        The downside risk of the given inputs, if known. Will be calculated if
+        not provided.
 
     Returns
     -------
@@ -469,7 +472,9 @@ def sortino_ratio(returns, required_return=0, period=DAILY,
         return np.nan
 
     mu = nanmean(returns - required_return, axis=0)
-    sortino = mu / downside_risk(returns, required_return)
+    dsr = (_downside_risk if _downside_risk is not None
+           else downside_risk(returns, required_return))
+    sortino = mu / dsr
     if len(returns.shape) == 2:
         sortino = pd.Series(sortino, index=returns.columns)
     return sortino * ann_factor
