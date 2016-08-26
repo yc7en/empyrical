@@ -43,8 +43,8 @@ ANNUALIZATION_FACTORS = {
 
 def _adjust_returns(returns, adjustment_factor):
     """
-    Adjusts the given returns by the given factor iff adjustment_factor is
-    non-zero
+    Returns a new pd.Series adjusted by adjustment_factor. Optimizes for the
+    case of adjustment_factor being 0
 
     Parameters
     ----------
@@ -56,7 +56,7 @@ def _adjust_returns(returns, adjustment_factor):
     pd.Series
     """
     if isinstance(adjustment_factor, (float, int)) and adjustment_factor == 0:
-        return returns
+        return returns.copy()
     return returns - adjustment_factor
 
 
@@ -138,6 +138,7 @@ def cum_returns(returns, starting_value=0):
         return np.nan
 
     if pd.isnull(returns.iloc[0]):
+        returns = returns.copy()
         returns.iloc[0] = 0.
 
     df_cum = np.exp(np.log1p(returns).cumsum())
