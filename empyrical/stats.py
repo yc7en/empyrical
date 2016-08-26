@@ -596,12 +596,13 @@ def alpha_beta(returns, factor_returns, risk_free=0.0, period=DAILY,
 
     """
     b = beta(returns, factor_returns, risk_free)
-    a = alpha(returns, factor_returns, risk_free, period, annualization)
+    a = alpha(returns, factor_returns, risk_free, period, annualization,
+              _beta=b)
     return a, b
 
 
 def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
-          annualization=None):
+          annualization=None, _beta=None):
     """Calculates annualized alpha.
 
     Parameters
@@ -628,6 +629,9 @@ def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
         returns into annual returns. Value should be the annual frequency of
         `returns`.
         - See full explanation in :func:`~empyrical.stats.annual_return`.
+    _beta : float, optional
+        The beta for the given inputs, if already known. Will be calculated
+        internally if not provided.
 
     Returns
     -------
@@ -637,7 +641,11 @@ def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
     if len(returns) < 2:
         return np.nan
     ann_factor = annualization_factor(period, annualization)
-    b = beta(returns, factor_returns, risk_free)
+    if _beta is None:
+        b = beta(returns, factor_returns, risk_free)
+    else:
+        b = _beta
+
     alpha = returns - risk_free - b*(factor_returns - risk_free)
     return alpha.mean() * ann_factor
 
