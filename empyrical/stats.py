@@ -41,6 +41,25 @@ ANNUALIZATION_FACTORS = {
 }
 
 
+def _adjust_returns(returns, adjustment_factor):
+    """
+    Adjusts the given returns by the given factor iff adjustment_factor is
+    non-zero
+
+    Parameters
+    ----------
+    returns : pd.Series
+    adjustment_factor : series / float
+
+    Returns
+    -------
+    pd.Series
+    """
+    if isinstance(adjustment_factor, (float, int)) and adjustment_factor == 0:
+        return returns
+    return returns - adjustment_factor
+
+
 def annualization_factor(period, annualization):
     """
     Return annualization factor from period entered or if a custom
@@ -417,10 +436,7 @@ def sharpe_ratio(returns, risk_free=0, period=DAILY, annualization=None):
 
     ann_factor = annualization_factor(period, annualization)
 
-    if not (isinstance(risk_free, (float, int)) and risk_free == 0):
-        returns_risk_adj = returns - risk_free
-    else:
-        returns_risk_adj = returns
+    returns_risk_adj = _adjust_returns(returns, risk_free)
 
     if np.std(returns_risk_adj, ddof=1) == 0:
         return np.nan
@@ -474,12 +490,7 @@ def sortino_ratio(returns, required_return=0, period=DAILY,
     if len(returns) < 2:
         return np.nan
 
-    if not (isinstance(required_return, (float, int))
-            and required_return == 0.0):
-        adj_returns = returns - required_return
-    else:
-        adj_returns = returns
-
+    adj_returns = _adjust_returns(returns, required_return)
     mu = nanmean(adj_returns, axis=0)
     dsr = (_downside_risk if _downside_risk is not None
            else downside_risk(returns, required_return))
@@ -528,12 +539,7 @@ def downside_risk(returns, required_return=0, period=DAILY,
 
     ann_factor = annualization_factor(period, annualization)
 
-    if not (isinstance(required_return, (float, int))
-            and required_return == 0.0):
-        downside_diff = returns - required_return
-    else:
-        downside_diff = returns
-
+    downside_diff = _adjust_returns(returns, required_return)
     mask = downside_diff > 0
     downside_diff[mask] = 0.0
     squares = np.square(downside_diff)
@@ -569,7 +575,7 @@ def information_ratio(returns, factor_returns):
     if len(returns) < 2:
         return np.nan
 
-    active_return = returns - factor_returns
+    active_return = _adjust_returns(returns, factor_returns)
     tracking_error = np.std(active_return, ddof=1)
     if np.isnan(tracking_error):
         return 0.0
@@ -667,13 +673,8 @@ def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
     else:
         b = _beta
 
-    if isinstance(risk_free, (float, int)) and risk_free == 0.0:
-        adj_returns = returns
-        adj_factor_returns = factor_returns
-    else:
-        adj_returns = returns - risk_free
-        adj_factor_returns = factor_returns - risk_free
-
+    adj_returns = _adjust_returns(returns, risk_free)
+    adj_factor_returns = _adjust_returns(factor_returns, risk_free)
     alpha_series = adj_returns - (b * adj_factor_returns)
 
     return alpha_series.mean() * ann_factor
@@ -710,10 +711,7 @@ def beta(returns, factor_returns, risk_free=0.0):
     if len(indices) < 2:
         return np.nan
 
-    if isinstance(risk_free, (float, int)) and risk_free == 0.0:
-        adj_returns = returns[indices]
-    else:
-        adj_returns = returns[indices] - risk_free
+    adj_returns = _adjust_returns(returns[indices], risk_free)
 
     indexed_factor_returns = factor_returns[indices]
 
