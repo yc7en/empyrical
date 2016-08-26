@@ -686,10 +686,16 @@ def beta(returns, factor_returns, risk_free=0.0):
     if len(indices) < 2:
         return np.nan
 
-    covar = np.cov(returns[indices]-risk_free,
-                   factor_returns[indices], ddof=0)[0][1]
+    if isinstance(risk_free, (float, int)) and risk_free == 0.0:
+        adj_returns = returns[indices]
+    else:
+        adj_returns = returns[indices] - risk_free
 
-    return covar/np.var(factor_returns[indices])
+    indexed_factor_returns = factor_returns[indices]
+
+    covar = np.cov(adj_returns, indexed_factor_returns, ddof=0)[0][1]
+
+    return covar/np.var(indexed_factor_returns)
 
 
 def stability_of_timeseries(returns):
