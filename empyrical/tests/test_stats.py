@@ -524,6 +524,8 @@ class TestStats(TestCase):
         (noise, 0),
     ])
     def test_sortino_add_noise(self, returns, required_return):
+        # Don't mutate global test state
+        returns = returns.copy()
         sr_1 = empyrical.sortino_ratio(returns, required_return)
         upside_values = returns[returns > required_return].index.tolist()
         # Add large losses at random upside locations
@@ -542,6 +544,8 @@ class TestStats(TestCase):
         (noise, 0)
     ])
     def test_sortino_sub_noise(self, returns, required_return):
+        # Don't mutate global test state
+        returns = returns.copy()
         sr_1 = empyrical.sortino_ratio(returns, required_return)
         downside_values = returns[returns < required_return].index.tolist()
         # Replace some values below the required return to the required return
