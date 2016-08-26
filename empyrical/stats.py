@@ -741,6 +741,8 @@ def stability_of_timeseries(returns):
     if len(returns) < 2:
         return np.nan
 
+    returns = returns.dropna()
+
     cum_log_returns = np.log1p(returns).cumsum()
     rhat = stats.linregress(np.arange(len(cum_log_returns)),
                             cum_log_returns.values)[2]

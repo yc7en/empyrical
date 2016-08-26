@@ -817,7 +817,7 @@ class TestStats(TestCase):
     @parameterized.expand([
         (empty_returns, np.nan),
         (one_return, np.nan),
-        (mixed_returns, 0.33072113092134847),
+        (mixed_returns, 0.1529973665111273),
         (simple_benchmark, 1.0),
     ])
     def test_stability_of_timeseries(self, returns, expected):
