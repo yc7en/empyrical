@@ -706,15 +706,12 @@ def beta(returns, factor_returns, risk_free=0.0):
     if len(returns) < 2 or len(factor_returns) < 2:
         return np.nan
     # Filter out dates with np.nan as a return value
-    indices = pd.concat([returns, factor_returns], axis=1).dropna()
-    if len(indices) < 2:
+    joint = pd.concat([_adjust_returns(returns, risk_free),
+                       factor_returns], axis=1).dropna()
+    if len(joint) < 2:
         return np.nan
 
-    adj_indices = _adjust_returns(indices[0], risk_free)
-
-    covar = np.cov(adj_indices, indices[1], ddof=0)[0][1]
-
-    return covar/np.var(indices[1])
+    return joint.corr().iloc[0, 1]
 
 
 def stability_of_timeseries(returns):

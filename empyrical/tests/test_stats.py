@@ -17,7 +17,7 @@ class TestStats(TestCase):
 
     # Simple benchmark, no drawdown
     simple_benchmark = pd.Series(
-        np.array([1., 1., 1., 1., 1., 1., 1., 1., 1.]) / 100,
+        np.array([0., 1., 0., 1., 0., 1., 0., 1., 0.]) / 100,
         index=pd.date_range('2000-1-30', periods=9, freq='D'))
 
     # All positive returns, small variance
