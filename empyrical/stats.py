@@ -645,14 +645,24 @@ def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
     """
     if len(returns) < 2:
         return np.nan
+
     ann_factor = annualization_factor(period, annualization)
+
     if _beta is None:
         b = beta(returns, factor_returns, risk_free)
     else:
         b = _beta
 
-    alpha = returns - risk_free - b*(factor_returns - risk_free)
-    return alpha.mean() * ann_factor
+    if isinstance(risk_free, (float, int)) and risk_free == 0.0:
+        adj_returns = returns
+        adj_factor_returns = factor_returns
+    else:
+        adj_returns = returns - risk_free
+        adj_factor_returns = factor_returns - risk_free
+
+    alpha_series = adj_returns - (b * adj_factor_returns)
+
+    return alpha_series.mean() * ann_factor
 
 
 def beta(returns, factor_returns, risk_free=0.0):
