@@ -437,7 +437,7 @@ def sharpe_ratio(returns, risk_free=0, period=DAILY, annualization=None):
 
     ann_factor = annualization_factor(period, annualization)
 
-    returns_risk_adj = _adjust_returns(returns, risk_free)
+    returns_risk_adj = _adjust_returns(returns, risk_free).dropna()
 
     if np.std(returns_risk_adj, ddof=1) == 0:
         return np.nan
@@ -769,6 +769,11 @@ def tail_ratio(returns):
 
     """
 
+    if len(returns) < 1:
+        return np.nan
+
+    # Be tolerant of nan's
+    returns = returns.dropna()
     if len(returns) < 1:
         return np.nan
 
