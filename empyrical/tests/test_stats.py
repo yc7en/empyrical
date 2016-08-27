@@ -232,7 +232,7 @@ class TestStats(TestCase):
 
     @parameterized.expand([
         (simple_benchmark, empyrical.DAILY, 0.0),
-        (mixed_returns, empyrical.DAILY, 0.8552777326693359),
+        (mixed_returns, empyrical.DAILY, 0.9136465399704637),
         (weekly_returns, empyrical.WEEKLY, 0.38851569394870583),
         (monthly_returns, empyrical.MONTHLY, 0.18663690238892558)
     ])
@@ -266,9 +266,9 @@ class TestStats(TestCase):
     @parameterized.expand([
         (empty_returns, 0.0, 0.0, np.nan),
         (one_return, 0.0, 0.0, np.nan),
-        (mixed_returns, 0.0, 10.0, 0.78629772289706013),
+        (mixed_returns, 0.0, 10.0, 0.83354263497557934),
         (mixed_returns, 0.0, -10.0, np.nan),
-        (mixed_returns, simple_benchmark, 0.0, 0.76470588235294112),
+        (mixed_returns, simple_benchmark, 0.0, 0.8125),
         (positive_returns, 0.01, 0.0, np.nan),
         (positive_returns, 0.011, 0.0, 1.125),
         (positive_returns, 0.02, 0.0, 0.0),
@@ -300,15 +300,15 @@ class TestStats(TestCase):
         (empty_returns, 0.0, np.nan),
         (one_return, 0.0, np.nan),
         (mixed_returns, mixed_returns, np.nan),
-        (mixed_returns, 0.0, 1.6368951821422701),
-        (mixed_returns, simple_benchmark, -1.3095161457138154),
+        (mixed_returns, 0.0, 1.7238613961706866),
+        (mixed_returns, simple_benchmark, -1.0343168377024115),
         (positive_returns, 0.0, 52.915026221291804),
         (negative_returns, 0.0, -24.406808633910085)
     ])
     def test_sharpe_ratio(self, returns, risk_free, expected):
         assert_almost_equal(
             empyrical.sharpe_ratio(
-                np.asarray(returns),
+                returns,
                 risk_free=risk_free),
             expected,
             DECIMAL_PLACES)
@@ -396,8 +396,8 @@ class TestStats(TestCase):
         (empty_returns, 0.0, empyrical.DAILY, np.nan),
         (one_return, 0.0, empyrical.DAILY, 0.0),
         (mixed_returns, mixed_returns, empyrical.DAILY, 0.0),
-        (mixed_returns, 0.0, empyrical.DAILY, 0.5699122739510003),
-        (mixed_returns, 0.1, empyrical.DAILY, 1.7023513150933332),
+        (mixed_returns, 0.0, empyrical.DAILY, 0.60448325038829653),
+        (mixed_returns, 0.1, empyrical.DAILY, 1.7161730681956295),
         (weekly_returns, 0.0, empyrical.WEEKLY, 0.25888650451930134),
         (weekly_returns, 0.1, empyrical.WEEKLY, 0.7733045971672482),
         (monthly_returns, 0.0, empyrical.MONTHLY, 0.1243650540411842),
@@ -481,9 +481,9 @@ class TestStats(TestCase):
         (empty_returns, 0.0, empyrical.DAILY, np.nan),
         (one_return, 0.0, empyrical.DAILY, np.nan),
         (mixed_returns, mixed_returns, empyrical.DAILY, np.nan),
-        (mixed_returns, 0.0, empyrical.DAILY, 2.456518422202588),
+        (mixed_returns, 0.0, empyrical.DAILY, 2.605531251673693),
         (mixed_returns, simple_benchmark, empyrical.DAILY,
-            -1.7457431218879385),
+            -1.3934779588919977),
         (positive_returns, 0.0, empyrical.DAILY, np.inf),
         (negative_returns, 0.0, empyrical.DAILY, -13.532743075043401),
         (simple_benchmark, 0.0, empyrical.DAILY, np.inf),
@@ -605,8 +605,8 @@ class TestStats(TestCase):
         (empty_returns, 0.0, np.nan),
         (one_return, 0.0, np.nan),
         (pos_line, pos_line, np.nan),
-        (mixed_returns, 0.0, 0.10311470414829102),
-        (mixed_returns, simple_benchmark, -0.082491763318632769),
+        (mixed_returns, 0.0, 0.10859306069076737),
+        (mixed_returns, simple_benchmark, -0.06515583641446039),
     ])
     def test_information_ratio(self, returns, factor_returns, expected):
         assert_almost_equal(
@@ -834,7 +834,7 @@ class TestStats(TestCase):
         (empty_returns, np.nan),
         (one_return, 1.0),
         (mixed_returns, 0.9473684210526313),
-        (np.random.randn(100000), 1.),
+        (pd.Series(np.random.randn(100000)), 1.),
     ])
     def test_tail_ratio(self, returns, expected):
         assert_almost_equal(
