@@ -148,12 +148,12 @@ class TestStats(TestCase):
                 4)
 
     @parameterized.expand([
-        (simple_benchmark, empyrical.WEEKLY, [0.010000000000000009,
-                                              0.072135352107010053,
-                                              0.010000000000000009]),
-        (simple_benchmark, empyrical.MONTHLY, [0.020100000000000007,
-                                               0.072135352107010053]),
-        (simple_benchmark, empyrical.YEARLY, [0.093685272684361109]),
+        (simple_benchmark, empyrical.WEEKLY, [0.0,
+                                              0.040604010000000024,
+                                              0.0]),
+        (simple_benchmark, empyrical.MONTHLY, [0.01,
+                                               0.03030099999999991]),
+        (simple_benchmark, empyrical.YEARLY, [0.040604010000000024]),
         (weekly_returns, empyrical.MONTHLY, [0.0, 0.087891200000000058,
                                              -0.04500459999999995]),
         (weekly_returns, empyrical.YEARLY, [0.038931091700480147]),
@@ -241,7 +241,7 @@ class TestStats(TestCase):
             DECIMAL_PLACES)
 
     @parameterized.expand([
-        (simple_benchmark, empyrical.DAILY, 0.0),
+        (flat_line_1, empyrical.DAILY, 0.0),
         (mixed_returns, empyrical.DAILY, 0.9136465399704637),
         (weekly_returns, empyrical.WEEKLY, 0.38851569394870583),
         (monthly_returns, empyrical.MONTHLY, 0.18663690238892558)
@@ -278,7 +278,7 @@ class TestStats(TestCase):
         (one_return, 0.0, 0.0, np.nan),
         (mixed_returns, 0.0, 10.0, 0.83354263497557934),
         (mixed_returns, 0.0, -10.0, np.nan),
-        (mixed_returns, simple_benchmark, 0.0, 0.8125),
+        (mixed_returns, flat_line_1, 0.0, 0.8125),
         (positive_returns, 0.01, 0.0, np.nan),
         (positive_returns, 0.011, 0.0, 1.125),
         (positive_returns, 0.02, 0.0, 0.0),
@@ -311,7 +311,7 @@ class TestStats(TestCase):
         (one_return, 0.0, np.nan),
         (mixed_returns, mixed_returns, np.nan),
         (mixed_returns, 0.0, 1.7238613961706866),
-        (mixed_returns, simple_benchmark, -1.0343168377024115),
+        (mixed_returns, simple_benchmark, 0.34111411441060574),
         (positive_returns, 0.0, 52.915026221291804),
         (negative_returns, 0.0, -24.406808633910085)
     ])
@@ -492,7 +492,7 @@ class TestStats(TestCase):
         (one_return, 0.0, empyrical.DAILY, np.nan),
         (mixed_returns, mixed_returns, empyrical.DAILY, np.nan),
         (mixed_returns, 0.0, empyrical.DAILY, 2.605531251673693),
-        (mixed_returns, simple_benchmark, empyrical.DAILY,
+        (mixed_returns, flat_line_1, empyrical.DAILY,
             -1.3934779588919977),
         (positive_returns, 0.0, empyrical.DAILY, np.inf),
         (negative_returns, 0.0, empyrical.DAILY, -13.532743075043401),
@@ -616,7 +616,7 @@ class TestStats(TestCase):
         (one_return, 0.0, np.nan),
         (pos_line, pos_line, np.nan),
         (mixed_returns, 0.0, 0.10859306069076737),
-        (mixed_returns, simple_benchmark, -0.06515583641446039),
+        (mixed_returns, flat_line_1, -0.06515583641446039),
     ])
     def test_information_ratio(self, returns, factor_returns, expected):
         assert_almost_equal(
@@ -668,9 +668,9 @@ class TestStats(TestCase):
     @parameterized.expand([
         (empty_returns, simple_benchmark, (np.nan, np.nan)),
         (one_return, one_return, (np.nan, np.nan)),
-        (mixed_returns, simple_benchmark[1:], (np.nan, np.nan)),
-        (mixed_returns, negative_returns[1:], (-8.3066666666666666,
-                                               -0.71296296296296291)),
+        (mixed_returns, flat_line_1, (np.nan, np.nan)),
+        (mixed_returns, negative_returns[1:], (-3.1937012590550475,
+                                               -0.34406213990296158)),
         (mixed_returns, mixed_returns, (0.0, 1.0)),
         (mixed_returns, -mixed_returns, (0.0, -1.0)),
     ])
@@ -688,7 +688,7 @@ class TestStats(TestCase):
     @parameterized.expand([
         (empty_returns, simple_benchmark, np.nan),
         (one_return, one_return, np.nan),
-        (mixed_returns, simple_benchmark[1:], np.nan),
+        (mixed_returns, flat_line_1, np.nan),
         (mixed_returns, mixed_returns, 0.0),
         (mixed_returns, -mixed_returns, 0.0),
     ])
@@ -799,7 +799,7 @@ class TestStats(TestCase):
     @parameterized.expand([
         (empty_returns, simple_benchmark, np.nan),
         (one_return, one_return,  np.nan),
-        (mixed_returns, simple_benchmark, np.nan),
+        (mixed_returns, flat_line_1, np.nan),
         (noise, noise, 1.0),
         (noise, inv_noise, -1.0),
         (sparse_noise*flat_line_1, sparse_flat_line_1, 0.0),
@@ -834,7 +834,7 @@ class TestStats(TestCase):
         (empty_returns, np.nan),
         (one_return, np.nan),
         (mixed_returns, 0.1529973665111273),
-        (simple_benchmark, 1.0),
+        (flat_line_1, 1.0),
     ])
     def test_stability_of_timeseries(self, returns, expected):
         assert_almost_equal(
