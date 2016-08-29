@@ -803,7 +803,7 @@ class TestStats(TestCase):
         (noise, noise, 1.0),
         (noise, inv_noise, -1.0),
         (sparse_noise*flat_line_1, sparse_flat_line_1, 0.0),
-        (sparse_tz_returns, sparse_tz_benchmark, -7.75)
+        (sparse_tz_returns, sparse_tz_benchmark, -0.59093196003884318)
     ])
     def test_beta(self, returns, benchmark, expected):
         assert_almost_equal(
