@@ -41,6 +41,25 @@ ANNUALIZATION_FACTORS = {
 }
 
 
+def _adjust_returns(returns, adjustment_factor):
+    """
+    Returns a new pd.Series adjusted by adjustment_factor. Optimizes for the
+    case of adjustment_factor being 0
+
+    Parameters
+    ----------
+    returns : pd.Series
+    adjustment_factor : series / float
+
+    Returns
+    -------
+    pd.Series
+    """
+    if isinstance(adjustment_factor, (float, int)) and adjustment_factor == 0:
+        return returns.copy()
+    return returns - adjustment_factor
+
+
 def annualization_factor(period, annualization):
     """
     Return annualization factor from period entered or if a custom
@@ -119,6 +138,7 @@ def cum_returns(returns, starting_value=0):
         return np.nan
 
     if pd.isnull(returns.iloc[0]):
+        returns = returns.copy()
         returns.iloc[0] = 0.
 
     df_cum = np.exp(np.log1p(returns).cumsum())
@@ -417,7 +437,7 @@ def sharpe_ratio(returns, risk_free=0, period=DAILY, annualization=None):
 
     ann_factor = annualization_factor(period, annualization)
 
-    returns_risk_adj = returns - risk_free
+    returns_risk_adj = _adjust_returns(returns, risk_free).dropna()
 
     if np.std(returns_risk_adj, ddof=1) == 0:
         return np.nan
@@ -427,7 +447,7 @@ def sharpe_ratio(returns, risk_free=0, period=DAILY, annualization=None):
 
 
 def sortino_ratio(returns, required_return=0, period=DAILY,
-                  annualization=None):
+                  annualization=None, _downside_risk=None):
     """
     Determines the Sortino ratio of a strategy.
 
@@ -449,6 +469,9 @@ def sortino_ratio(returns, required_return=0, period=DAILY,
         Used to suppress default values available in `period` to convert
         returns into annual returns. Value should be the annual frequency of
         `returns`.
+    _downside_risk : float, optional
+        The downside risk of the given inputs, if known. Will be calculated if
+        not provided.
 
     Returns
     -------
@@ -468,8 +491,11 @@ def sortino_ratio(returns, required_return=0, period=DAILY,
     if len(returns) < 2:
         return np.nan
 
-    mu = nanmean(returns - required_return, axis=0)
-    sortino = mu / downside_risk(returns, required_return)
+    adj_returns = _adjust_returns(returns, required_return)
+    mu = nanmean(adj_returns, axis=0)
+    dsr = (_downside_risk if _downside_risk is not None
+           else downside_risk(returns, required_return))
+    sortino = mu / dsr
     if len(returns.shape) == 2:
         sortino = pd.Series(sortino, index=returns.columns)
     return sortino * ann_factor
@@ -514,7 +540,7 @@ def downside_risk(returns, required_return=0, period=DAILY,
 
     ann_factor = annualization_factor(period, annualization)
 
-    downside_diff = returns - required_return
+    downside_diff = _adjust_returns(returns, required_return)
     mask = downside_diff > 0
     downside_diff[mask] = 0.0
     squares = np.square(downside_diff)
@@ -550,7 +576,7 @@ def information_ratio(returns, factor_returns):
     if len(returns) < 2:
         return np.nan
 
-    active_return = returns - factor_returns
+    active_return = _adjust_returns(returns, factor_returns)
     tracking_error = np.std(active_return, ddof=1)
     if np.isnan(tracking_error):
         return 0.0
@@ -596,12 +622,13 @@ def alpha_beta(returns, factor_returns, risk_free=0.0, period=DAILY,
 
     """
     b = beta(returns, factor_returns, risk_free)
-    a = alpha(returns, factor_returns, risk_free, period, annualization)
+    a = alpha(returns, factor_returns, risk_free, period, annualization,
+              _beta=b)
     return a, b
 
 
 def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
-          annualization=None):
+          annualization=None, _beta=None):
     """Calculates annualized alpha.
 
     Parameters
@@ -628,6 +655,9 @@ def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
         returns into annual returns. Value should be the annual frequency of
         `returns`.
         - See full explanation in :func:`~empyrical.stats.annual_return`.
+    _beta : float, optional
+        The beta for the given inputs, if already known. Will be calculated
+        internally if not provided.
 
     Returns
     -------
@@ -636,10 +666,19 @@ def alpha(returns, factor_returns, risk_free=0.0, period=DAILY,
     """
     if len(returns) < 2:
         return np.nan
+
     ann_factor = annualization_factor(period, annualization)
-    b = beta(returns, factor_returns, risk_free)
-    alpha = returns - risk_free - b*(factor_returns - risk_free)
-    return alpha.mean() * ann_factor
+
+    if _beta is None:
+        b = beta(returns, factor_returns, risk_free)
+    else:
+        b = _beta
+
+    adj_returns = _adjust_returns(returns, risk_free)
+    adj_factor_returns = _adjust_returns(factor_returns, risk_free)
+    alpha_series = adj_returns - (b * adj_factor_returns)
+
+    return alpha_series.mean() * ann_factor
 
 
 def beta(returns, factor_returns, risk_free=0.0):
@@ -673,10 +712,13 @@ def beta(returns, factor_returns, risk_free=0.0):
     if len(indices) < 2:
         return np.nan
 
-    covar = np.cov(returns[indices]-risk_free,
-                   factor_returns[indices], ddof=0)[0][1]
+    adj_returns = _adjust_returns(returns[indices], risk_free)
 
-    return covar/np.var(factor_returns[indices])
+    indexed_factor_returns = factor_returns[indices]
+
+    covar = np.cov(adj_returns, indexed_factor_returns, ddof=0)[0][1]
+
+    return covar/np.var(indexed_factor_returns)
 
 
 def stability_of_timeseries(returns):
@@ -698,6 +740,8 @@ def stability_of_timeseries(returns):
     """
     if len(returns) < 2:
         return np.nan
+
+    returns = returns.dropna()
 
     cum_log_returns = np.log1p(returns).cumsum()
     rhat = stats.linregress(np.arange(len(cum_log_returns)),
@@ -725,6 +769,11 @@ def tail_ratio(returns):
 
     """
 
+    if len(returns) < 1:
+        return np.nan
+
+    # Be tolerant of nan's
+    returns = returns.dropna()
     if len(returns) < 1:
         return np.nan
 
