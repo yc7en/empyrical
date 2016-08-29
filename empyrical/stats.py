@@ -703,22 +703,15 @@ def beta(returns, factor_returns, risk_free=0.0):
         Beta.
     """
 
+    if len(returns) < 2 or len(factor_returns) < 2:
+        return np.nan
     # Filter out dates with np.nan as a return value
-    indices = np.intersect1d(
-        returns.dropna().index,
-        factor_returns.dropna().index
-    )
-
-    if len(indices) < 2:
+    joint = pd.concat([_adjust_returns(returns, risk_free),
+                       factor_returns], axis=1).dropna()
+    if len(joint) < 2:
         return np.nan
 
-    adj_returns = _adjust_returns(returns[indices], risk_free)
-
-    indexed_factor_returns = factor_returns[indices]
-
-    covar = np.cov(adj_returns, indexed_factor_returns, ddof=0)[0][1]
-
-    return covar/np.var(indexed_factor_returns)
+    return joint.corr().iloc[0, 1]
 
 
 def stability_of_timeseries(returns):
