@@ -714,7 +714,7 @@ def beta(returns, factor_returns, risk_free=0.0):
     if np.absolute(joint.var().iloc[1]) < 1.0e-30:
         return np.nan
 
-    return joint.cov().iloc[0, 1] / joint.var().iloc[1]
+    return np.cov(joint.values.T, ddof=0)[0, 1] / np.var(joint.iloc[:, 1])
 
 
 def stability_of_timeseries(returns):
