@@ -36,15 +36,10 @@ class TestStats(TestCase):
         np.array([np.nan, 1., 10., -4., 2., 3., 2., 1., -10.]) / 100,
         index=pd.date_range('2000-1-30', periods=9, freq='D'))
 
-    # Sparse returns with timezone
-    sparse_tz_returns = pd.Series(
-        np.array([np.nan, 1., 10., -4., np.nan, 3., 2., np.nan, -10.]) / 100,
-        index=pd.date_range('2000-1-30', periods=9, freq='D', tz='UTC'))
-
-    # Sparse returns with timezone
-    sparse_tz_benchmark = pd.Series(
-        np.array([0., 0., 0., 1., 1., 1., 1., np.nan, 1.]) / 100,
-        index=pd.date_range('2000-1-30', periods=9, freq='D', tz='UTC'))
+    # Flat line
+    flat_line_1 = pd.Series(
+        np.array([1., 1., 1., 1., 1., 1., 1., 1., 1.]) / 100,
+        index=pd.date_range('2000-1-30', periods=9, freq='D'))
 
     # Weekly returns
     weekly_returns = pd.Series(
@@ -69,12 +64,12 @@ class TestStats(TestCase):
     # Random noise
     noise = pd.Series(
         [random.gauss(0, 0.001) for i in range(1000)],
-        index=pd.date_range('2000-1-30', periods=1000, freq='D')
+        index=pd.date_range('2000-1-30', periods=1000, freq='D', tz='UTC')
     )
 
     noise_uniform = pd.Series(
         [random.uniform(-0.01, 0.01) for i in range(1000)],
-        index=pd.date_range('2000-1-30', periods=1000, freq='D')
+        index=pd.date_range('2000-1-30', periods=1000, freq='D', tz='UTC')
     )
 
     # Random noise inv
@@ -83,24 +78,24 @@ class TestStats(TestCase):
     # Flat line
     flat_line_0 = pd.Series(
         np.linspace(0, 0, num=1000),
-        index=pd.date_range('2000-1-30', periods=1000, freq='D')
+        index=pd.date_range('2000-1-30', periods=1000, freq='D', tz='UTC')
     )
     # Flat line
-    flat_line_1 = pd.Series(
+    flat_line_1_tz = pd.Series(
         np.linspace(0.01, 0.01, num=1000),
-        index=pd.date_range('2000-1-30', periods=1000, freq='D')
+        index=pd.date_range('2000-1-30', periods=1000, freq='D', tz='UTC')
     )
 
     # Positive line
     pos_line = pd.Series(
         np.linspace(0, 1, num=1000),
-        index=pd.date_range('2000-1-30', periods=1000, freq='D')
+        index=pd.date_range('2000-1-30', periods=1000, freq='D', tz='UTC')
     )
 
     # Negative line
     neg_line = pd.Series(
         np.linspace(0, -1, num=1000),
-        index=pd.date_range('2000-1-30', periods=1000, freq='D')
+        index=pd.date_range('2000-1-30', periods=1000, freq='D', tz='UTC')
     )
 
     # Sparse noise, same as noise but with np.nan sprinkled in
@@ -109,7 +104,7 @@ class TestStats(TestCase):
 
     # Sparse flat line at 0.01
     replace_nan = random.sample(noise.index.tolist(), random.randint(1, 10))
-    sparse_flat_line_1 = flat_line_1.replace(replace_nan, np.nan)
+    sparse_flat_line_1_tz = flat_line_1_tz.replace(replace_nan, np.nan)
 
     one = [-0.00171614, 0.01322056, 0.03063862, -0.01422057, -0.00489779,
            0.01268925, -0.03357711, 0.01797036]
@@ -244,7 +239,7 @@ class TestStats(TestCase):
             DECIMAL_PLACES)
 
     @parameterized.expand([
-        (flat_line_1, empyrical.DAILY, 0.0),
+        (flat_line_1_tz, empyrical.DAILY, 0.0),
         (mixed_returns, empyrical.DAILY, 0.9136465399704637),
         (weekly_returns, empyrical.WEEKLY, 0.38851569394870583),
         (monthly_returns, empyrical.MONTHLY, 0.18663690238892558)
@@ -631,7 +626,7 @@ class TestStats(TestCase):
     # proportion of returns are uncorrelated with the benchmark.
     @parameterized.expand([
         (flat_line_0, pos_line),
-        (flat_line_1, pos_line),
+        (flat_line_1_tz, pos_line),
         (noise, pos_line)
     ])
     def test_information_ratio_noisy(self, noise_line, benchmark):
@@ -647,10 +642,10 @@ class TestStats(TestCase):
     # Vertical translations change the information ratio in the
     # direction of the translation.
     @parameterized.expand([
-        (pos_line, noise, flat_line_1),
-        (pos_line, inv_noise, flat_line_1),
-        (neg_line, noise, flat_line_1),
-        (neg_line, inv_noise, flat_line_1)
+        (pos_line, noise, flat_line_1_tz),
+        (pos_line, inv_noise, flat_line_1_tz),
+        (neg_line, noise, flat_line_1_tz),
+        (neg_line, inv_noise, flat_line_1_tz)
     ])
     def test_information_ratio_trans(self, returns, add_noise, translation):
         ir = empyrical.information_ratio(
@@ -671,8 +666,8 @@ class TestStats(TestCase):
     @parameterized.expand([
         (empty_returns, simple_benchmark, (np.nan, np.nan)),
         (one_return, one_return, (np.nan, np.nan)),
-        (mixed_returns, negative_returns[1:], (-3.1937012590550475,
-                                               -0.34406213990296158)),
+        (mixed_returns, negative_returns[1:], (-8.306666666666668,
+                                               -0.71296296296296313)),
         (mixed_returns, mixed_returns, (0.0, 1.0)),
         (mixed_returns, -mixed_returns, (0.0, -1.0)),
     ])
@@ -790,7 +785,7 @@ class TestStats(TestCase):
     # When faced with data containing np.nan, do not return np.nan. Calculate
     # alpha and beta using dates containing both.
     @parameterized.expand([
-        (sparse_noise, sparse_flat_line_1),
+        (sparse_noise, sparse_flat_line_1_tz),
     ])
     def test_alpha_beta_with_nan_inputs(self, returns, benchmark):
         alpha, beta = empyrical.alpha_beta(returns, benchmark)
@@ -800,13 +795,12 @@ class TestStats(TestCase):
     @parameterized.expand([
         (empty_returns, simple_benchmark, np.nan),
         (one_return, one_return,  np.nan),
-        (mixed_returns, flat_line_1, 0.),
+        (mixed_returns, flat_line_1, np.nan),
         (noise, noise, 1.0),
         (2 * noise, noise, 2.0),
         (noise, inv_noise, -1.0),
         (2 * noise, inv_noise, -2.0),
-        (sparse_noise*flat_line_1, sparse_flat_line_1, 0.0),
-        (sparse_tz_returns, sparse_tz_benchmark, -0.045058139534883732)
+        (sparse_noise*flat_line_1_tz, sparse_flat_line_1_tz, np.nan),
     ])
     def test_beta(self, returns, benchmark, expected):
         observed = empyrical.beta(returns, benchmark)
@@ -820,13 +814,13 @@ class TestStats(TestCase):
             returns_arr = returns.values
             benchmark_arr = benchmark.values
             mask = ~np.isnan(returns_arr) & ~np.isnan(benchmark_arr)
-            slope, intercept, _, _, _ = stats.linregress(benchmark_arr[mask], returns_arr[mask])
+            slope, intercept, _, _, _ = stats.linregress(benchmark_arr[mask],
+                                                         returns_arr[mask])
 
             assert_almost_equal(
                 observed,
                 slope
             )
-
 
     @parameterized.expand([
         (empty_returns, simple_benchmark),
@@ -852,7 +846,8 @@ class TestStats(TestCase):
             returns_arr = returns.values
             benchmark_arr = benchmark.values
             mask = ~np.isnan(returns_arr) & ~np.isnan(benchmark_arr)
-            slope, intercept, _, _, _ = stats.linregress(returns_arr[mask], benchmark_arr[mask])
+            slope, intercept, _, _, _ = stats.linregress(returns_arr[mask],
+                                                         benchmark_arr[mask])
 
             assert_almost_equal(
                 alpha_beta[0],
@@ -867,7 +862,7 @@ class TestStats(TestCase):
         (empty_returns, np.nan),
         (one_return, np.nan),
         (mixed_returns, 0.1529973665111273),
-        (flat_line_1, 1.0),
+        (flat_line_1_tz, 1.0),
     ])
     def test_stability_of_timeseries(self, returns, expected):
         assert_almost_equal(
@@ -892,7 +887,7 @@ class TestStats(TestCase):
         (empty_returns, "daily", np.nan),
         (one_return, "daily", 11.274002099240244),
         (mixed_returns, "daily", 1.9135925373194231),
-        (flat_line_1, "daily", 11.274002099240256),
+        (flat_line_1_tz, "daily", 11.274002099240256),
         (pd.Series(np.array(
             [3., 3., 3.])/100,
             index=pd.date_range('2000-1-30', periods=3, freq='A')
@@ -931,7 +926,7 @@ class TestStats(TestCase):
     @parameterized.expand([
         (pos_line, noise),
         (pos_line, noise_uniform),
-        (flat_line_1, noise)
+        (flat_line_1_tz, noise)
     ])
     def test_cagr_noisy(self, returns, add_noise):
         cagr = empyrical.cagr(returns)
