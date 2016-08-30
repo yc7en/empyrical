@@ -671,7 +671,6 @@ class TestStats(TestCase):
     @parameterized.expand([
         (empty_returns, simple_benchmark, (np.nan, np.nan)),
         (one_return, one_return, (np.nan, np.nan)),
-        (mixed_returns, flat_line_1, (np.nan, np.nan)),
         (mixed_returns, negative_returns[1:], (-3.1937012590550475,
                                                -0.34406213990296158)),
         (mixed_returns, mixed_returns, (0.0, 1.0)),
@@ -803,9 +802,9 @@ class TestStats(TestCase):
         (one_return, one_return,  np.nan),
         (mixed_returns, flat_line_1, 0.),
         (noise, noise, 1.0),
-        (noise, 2 * noise, 2.0),
+        (2 * noise, noise, 2.0),
         (noise, inv_noise, -1.0),
-        (noise, 2 * inv_noise, -2.0),
+        (2 * noise, inv_noise, -2.0),
         (sparse_noise*flat_line_1, sparse_flat_line_1, 0.0),
         (sparse_tz_returns, sparse_tz_benchmark, -0.045058139534883732)
     ])
@@ -821,7 +820,7 @@ class TestStats(TestCase):
             returns_arr = returns.values
             benchmark_arr = benchmark.values
             mask = ~np.isnan(returns_arr) & ~np.isnan(benchmark_arr)
-            slope, intercept, _, _, _ = stats.linregress(returns_arr[mask], benchmark_arr[mask])
+            slope, intercept, _, _, _ = stats.linregress(benchmark_arr[mask], returns_arr[mask])
 
             assert_almost_equal(
                 observed,

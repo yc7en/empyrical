@@ -711,7 +711,7 @@ def beta(returns, factor_returns, risk_free=0.0):
     if len(joint) < 2:
         return np.nan
 
-    return joint.cov().iloc[0, 1] / joint.var().iloc[0]
+    return joint.cov().iloc[0, 1] / joint.var().iloc[1]
 
 
 def stability_of_timeseries(returns):
