@@ -7,6 +7,7 @@ import random
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 import empyrical
 
@@ -70,6 +71,7 @@ class TestStats(TestCase):
         [random.gauss(0, 0.001) for i in range(1000)],
         index=pd.date_range('2000-1-30', periods=1000, freq='D')
     )
+
     noise_uniform = pd.Series(
         [random.uniform(-0.01, 0.01) for i in range(1000)],
         index=pd.date_range('2000-1-30', periods=1000, freq='D')
@@ -799,17 +801,33 @@ class TestStats(TestCase):
     @parameterized.expand([
         (empty_returns, simple_benchmark, np.nan),
         (one_return, one_return,  np.nan),
-        (mixed_returns, flat_line_1, np.nan),
+        (mixed_returns, flat_line_1, 0.),
         (noise, noise, 1.0),
+        (noise, 2 * noise, 2.0),
         (noise, inv_noise, -1.0),
+        (noise, 2 * inv_noise, -2.0),
         (sparse_noise*flat_line_1, sparse_flat_line_1, 0.0),
-        (sparse_tz_returns, sparse_tz_benchmark, -0.59093196003884318)
+        (sparse_tz_returns, sparse_tz_benchmark, -0.045058139534883732)
     ])
     def test_beta(self, returns, benchmark, expected):
+        observed = empyrical.beta(returns, benchmark)
         assert_almost_equal(
-            empyrical.beta(returns, benchmark),
+            observed,
             expected,
             DECIMAL_PLACES)
+
+        if len(returns) == len(benchmark):
+            # Compare to scipy linregress
+            returns_arr = returns.values
+            benchmark_arr = benchmark.values
+            mask = ~np.isnan(returns_arr) & ~np.isnan(benchmark_arr)
+            slope, intercept, _, _, _ = stats.linregress(returns_arr[mask], benchmark_arr[mask])
+
+            assert_almost_equal(
+                observed,
+                slope
+            )
+
 
     @parameterized.expand([
         (empty_returns, simple_benchmark),
@@ -829,6 +847,22 @@ class TestStats(TestCase):
             alpha_beta[1],
             empyrical.beta(returns, benchmark),
             DECIMAL_PLACES)
+
+        if len(returns) == len(benchmark):
+            # Compare to scipy linregress
+            returns_arr = returns.values
+            benchmark_arr = benchmark.values
+            mask = ~np.isnan(returns_arr) & ~np.isnan(benchmark_arr)
+            slope, intercept, _, _, _ = stats.linregress(returns_arr[mask], benchmark_arr[mask])
+
+            assert_almost_equal(
+                alpha_beta[0],
+                intercept
+            )
+            assert_almost_equal(
+                alpha_beta[1],
+                slope
+            )
 
     @parameterized.expand([
         (empty_returns, np.nan),
