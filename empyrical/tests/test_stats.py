@@ -690,10 +690,26 @@ class TestStats(TestCase):
         (mixed_returns, -mixed_returns, 0.0),
     ])
     def test_alpha(self, returns, benchmark, expected):
+        observed = empyrical.alpha(returns, benchmark)
         assert_almost_equal(
-            empyrical.alpha(returns, benchmark),
+            observed,
             expected,
             DECIMAL_PLACES)
+
+        if len(returns) == len(benchmark):
+            # Compare to scipy linregress
+            returns_arr = returns.values
+            benchmark_arr = benchmark.values
+            mask = ~np.isnan(returns_arr) & ~np.isnan(benchmark_arr)
+            slope, intercept, _, _, _ = stats.linregress(benchmark_arr[mask],
+                                                         returns_arr[mask])
+
+            assert_almost_equal(
+                observed,
+                intercept * 252,
+                DECIMAL_PLACES
+            )
+
 
     # Alpha/beta translation tests.
     @parameterized.expand([
