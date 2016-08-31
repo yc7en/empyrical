@@ -711,10 +711,11 @@ def beta(returns, factor_returns, risk_free=0.0):
     if len(joint) < 2:
         return np.nan
 
-    if np.absolute(joint.var().iloc[1]) < 1.0e-30:
+    cov = np.cov(joint.values.T, ddof=0)
+
+    if np.absolute(cov[1, 1]) < 1.0e-30:
         return np.nan
 
-    cov = np.cov(joint.values.T, ddof=0)
     return cov[0, 1] / cov[1, 1]
 
 
