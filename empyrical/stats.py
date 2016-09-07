@@ -43,8 +43,8 @@ ANNUALIZATION_FACTORS = {
 
 def _adjust_returns(returns, adjustment_factor):
     """
-    Returns a new pd.Series adjusted by adjustment_factor. Optimizes for the
-    case of adjustment_factor being 0
+    Returns the returns series adjusted by adjustment_factor. Optimizes for the
+    case of adjustment_factor being 0 by returning returns itself, not a copy!
 
     Parameters
     ----------
@@ -56,7 +56,7 @@ def _adjust_returns(returns, adjustment_factor):
     pd.Series
     """
     if isinstance(adjustment_factor, (float, int)) and adjustment_factor == 0:
-        return returns.copy()
+        return returns
     return returns - adjustment_factor
 
 
@@ -540,7 +540,7 @@ def downside_risk(returns, required_return=0, period=DAILY,
 
     ann_factor = annualization_factor(period, annualization)
 
-    downside_diff = _adjust_returns(returns, required_return)
+    downside_diff = _adjust_returns(returns, required_return).copy()
     mask = downside_diff > 0
     downside_diff[mask] = 0.0
     squares = np.square(downside_diff)
