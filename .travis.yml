@@ -34,7 +34,7 @@ before_install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda  
+  - conda update -q conda
 
 install:
   - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=$LIBGFORTRAN_VERSION
@@ -52,3 +52,6 @@ script:
 notifications:
   email: false
 
+branches:
+  only:
+    - master
