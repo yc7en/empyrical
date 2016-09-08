@@ -1,5 +1,6 @@
 from __future__ import division
 
+from itertools import chain, product
 from unittest import TestCase, skip
 from nose_parameterized import parameterized
 from numpy.testing import assert_almost_equal
@@ -12,6 +13,21 @@ from scipy import stats
 import empyrical
 
 DECIMAL_PLACES = 8
+
+
+def as_array_params(params):
+    """
+
+    Parameters
+    ----------
+    params : Iterable
+
+    Returns
+    -------
+    Iterable
+
+    """
+    return map(chain.from_iterable, product(params, [(False,), (True,)]))
 
 
 class TestStats(TestCase):
@@ -127,17 +143,19 @@ class TestStats(TestCase):
         'one': pd.Series(one, index=df_index_month),
         'two': pd.Series(two, index=df_index_month)})
 
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (mixed_returns, 0, [0.0, 0.01, 0.111, 0.066559, 0.08789, 0.12052,
                             0.14293, 0.15436, 0.03893]),
         (mixed_returns, 100, [100.0, 101.0, 111.1, 106.65599, 108.78912,
                               112.05279, 114.29384, 115.43678, 103.89310]),
         (negative_returns, 0, [0.0, -0.06, -0.1258, -0.13454, -0.21243,
                                -0.22818, -0.27449, -0.33253, -0.36590])
-    ])
-    def test_cum_returns(self, returns, starting_value, expected):
-        cum_returns = empyrical.cum_returns(returns,
-                                            starting_value=starting_value)
+    ]))
+    def test_cum_returns(self, returns, starting_value, expected, as_array):
+        cum_returns = empyrical.cum_returns(
+            returns.values if as_array else returns,
+            starting_value=starting_value,
+        )
         for i in range(returns.size):
             assert_almost_equal(
                 cum_returns[i],
@@ -165,7 +183,7 @@ class TestStats(TestCase):
                 expected[i],
                 DECIMAL_PLACES)
 
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (empty_returns, np.nan),
         (one_return, 0.0),
         (simple_benchmark, 0.0),
@@ -176,11 +194,11 @@ class TestStats(TestCase):
             np.array([10, -10, 10]) / 100,
             index=pd.date_range('2000-1-30', periods=3, freq='D')),
             -0.10)
-    ])
-    def test_max_drawdown(self, returns, expected):
+    ]))
+    def test_max_drawdown(self, returns, expected, as_array):
         assert_almost_equal(
             empyrical.max_drawdown(
-                returns
+                returns.values if as_array else returns
             ),
             expected,
             DECIMAL_PLACES)
@@ -189,17 +207,23 @@ class TestStats(TestCase):
     # the maximum drawdown by a factor greater than or equal to the constant.
     # Similarly, a positive constant smaller than 1 will decrease maximum
     # drawdown by at least the constant.
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (noise_uniform, 1.1),
         (noise, 2),
         (noise_uniform, 10),
         (noise_uniform, 0.99),
         (noise, 0.5)
-    ])
+    ]))
     @skip("Randomly fails")
-    def test_max_drawdown_transformation(self, returns, constant):
-        max_dd = empyrical.max_drawdown(returns)
-        transformed_dd = empyrical.max_drawdown(constant*returns)
+    def test_max_drawdown_transformation(self, returns, constant, as_array):
+        max_dd = empyrical.max_drawdown(
+            returns.values if as_array else returns
+        )
+        transformed_dd_input = constant*returns
+        transformed_dd = empyrical.max_drawdown(
+            transformed_dd_input.values
+            if as_array else transformed_dd_input
+        )
         if constant >= 1:
             assert constant*max_dd <= transformed_dd
         else:
@@ -209,62 +233,66 @@ class TestStats(TestCase):
     # returns by a positive constant should increase the maximum
     # drawdown to a maximum of zero. Translating by a negative constant
     # decreases the maximum drawdown.
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (noise, .0001),
         (noise, .001),
         (noise_uniform, .01),
         (noise_uniform, .1),
-    ])
-    def test_max_drawdown_translation(self, returns, constant):
+    ]))
+    def test_max_drawdown_translation(self, returns, constant, as_array):
         depressed_returns = returns-constant
         raised_returns = returns+constant
-        max_dd = empyrical.max_drawdown(returns)
-        depressed_dd = empyrical.max_drawdown(depressed_returns)
-        raised_dd = empyrical.max_drawdown(raised_returns)
+        max_dd = empyrical.max_drawdown(returns.values
+                                        if as_array else returns)
+        depressed_dd = empyrical.max_drawdown(
+            depressed_returns.values if as_array else depressed_returns
+        )
+        raised_dd = empyrical.max_drawdown(raised_returns.values
+                                           if as_array else raised_returns)
         assert max_dd <= raised_dd
         assert depressed_dd <= max_dd
 
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (mixed_returns, empyrical.DAILY, 1.9135925373194231),
         (weekly_returns, empyrical.WEEKLY, 0.24690830513998208),
         (monthly_returns, empyrical.MONTHLY, 0.052242061386048144)
-    ])
-    def test_annual_ret(self, returns, period, expected):
+    ]))
+    def test_annual_ret(self, returns, period, expected, as_array):
         assert_almost_equal(
             empyrical.annual_return(
-                returns,
-                period=period
+                returns.values if as_array else returns,
+                period=period,
             ),
             expected,
             DECIMAL_PLACES)
 
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (flat_line_1_tz, empyrical.DAILY, 0.0),
         (mixed_returns, empyrical.DAILY, 0.9136465399704637),
         (weekly_returns, empyrical.WEEKLY, 0.38851569394870583),
         (monthly_returns, empyrical.MONTHLY, 0.18663690238892558)
-    ])
-    def test_annual_volatility(self, returns, period, expected):
+    ]))
+    def test_annual_volatility(self, returns, period, expected, as_array):
         assert_almost_equal(
             empyrical.annual_volatility(
-                returns,
+                returns.values if as_array else returns,
                 period=period
             ),
             expected,
             DECIMAL_PLACES
         )
 
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (empty_returns, empyrical.DAILY, np.nan),
         (one_return, empyrical.DAILY, np.nan),
         (mixed_returns, empyrical.DAILY, 19.135925373194233),
         (weekly_returns, empyrical.WEEKLY, 2.4690830513998208),
         (monthly_returns, empyrical.MONTHLY, 0.52242061386048144)
-    ])
-    def test_calmar(self, returns, period, expected):
+    ]))
+    def test_calmar(self, returns, period, expected, as_array):
         assert_almost_equal(
             empyrical.calmar_ratio(
-                returns,
+                returns.values if as_array else returns,
                 period=period
             ),
             expected,
@@ -304,7 +332,7 @@ class TestStats(TestCase):
             empyrical.omega_ratio(returns, required_return_more)
 
     # Regressive sharpe ratio tests
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (empty_returns, 0.0, np.nan),
         (one_return, 0.0, np.nan),
         (mixed_returns, mixed_returns, np.nan),
@@ -312,29 +340,35 @@ class TestStats(TestCase):
         (mixed_returns, simple_benchmark, 0.34111411441060574),
         (positive_returns, 0.0, 52.915026221291804),
         (negative_returns, 0.0, -24.406808633910085)
-    ])
-    def test_sharpe_ratio(self, returns, risk_free, expected):
+    ]))
+    def test_sharpe_ratio(self, returns, risk_free, expected, as_array):
         assert_almost_equal(
             empyrical.sharpe_ratio(
-                returns,
+                returns.values if as_array else returns,
                 risk_free=risk_free),
             expected,
             DECIMAL_PLACES)
 
     # Translating the returns and required returns by the same amount
     # does not change the sharpe ratio.
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (noise_uniform, 0, .005),
         (noise_uniform, 0.005, .005)
-    ])
+    ]))
     def test_sharpe_translation_same(self, returns, required_return,
-                                     translation):
-        sr = empyrical.sharpe_ratio(returns, required_return)
+                                     translation, as_array):
+        sr = empyrical.sharpe_ratio(
+            returns.values if as_array else returns,
+            required_return,
+        )
+        sr_depressed_input = returns-translation
         sr_depressed = empyrical.sharpe_ratio(
-            returns-translation,
-            required_return-translation)
+            sr_depressed_input.values if as_array else sr_depressed_input,
+            required_return - translation,
+        )
+        sr_raised_input = returns+translation
         sr_raised = empyrical.sharpe_ratio(
-            returns+translation,
+            sr_raised_input.values if as_array else sr_raised_input,
             required_return+translation)
         assert_almost_equal(
             sr,
@@ -347,20 +381,26 @@ class TestStats(TestCase):
 
     # Translating the returns and required returns by the different amount
     # yields different sharpe ratios
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (noise_uniform, 0, .0002, .0001),
         (noise_uniform, 0.005, .0001, .0002)
-    ])
+    ]))
     def test_sharpe_translation_diff(self, returns, required_return,
                                      translation_returns,
-                                     translation_required):
-        sr = empyrical.sharpe_ratio(returns, required_return)
+                                     translation_required,
+                                     as_array):
+        sr = empyrical.sharpe_ratio(returns.values if as_array else returns,
+                                    required_return)
+        sr_depressed_input = returns - translation_returns
         sr_depressed = empyrical.sharpe_ratio(
-            returns-translation_returns,
-            required_return-translation_required)
+            sr_depressed_input.values if as_array else sr_depressed_input,
+            required_return-translation_required,
+        )
+        sr_raised_input = returns + translation_returns
         sr_raised = empyrical.sharpe_ratio(
-            returns+translation_returns,
-            required_return+translation_required)
+            sr_raised_input.values if as_array else sr_raised_input,
+            required_return+translation_required,
+        )
         assert sr != sr_depressed
         assert sr != sr_raised
 
@@ -382,11 +422,11 @@ class TestStats(TestCase):
 
     # Returns of a wider range or larger standard deviation decreases the
     # sharpe ratio
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (.001, .002),
         (.01, .02)
-    ])
-    def test_sharpe_noise(self, small, large):
+    ]))
+    def test_sharpe_noise(self, small, large, as_array):
         index = pd.date_range('2000-1-30', periods=1000, freq='D')
         smaller_normal = pd.Series(
             [random.gauss(.01, small) for i in range(1000)],
@@ -396,8 +436,16 @@ class TestStats(TestCase):
             [random.gauss(.01, large) for i in range(1000)],
             index=index
         )
-        assert empyrical.sharpe_ratio(smaller_normal, 0.001) > \
-            empyrical.sharpe_ratio(larger_normal, 0.001)
+        assert (
+            empyrical.sharpe_ratio(
+                smaller_normal.values if as_array else smaller_normal,
+                0.001,
+            ) >
+            empyrical.sharpe_ratio(
+                larger_normal.values if as_array else larger_normal,
+                0.001,
+            )
+        )
 
     # Regressive downside risk tests
     @parameterized.expand([
@@ -609,56 +657,73 @@ class TestStats(TestCase):
         assert sr != sr_raised
 
     # Regressive tests for information ratio
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (empty_returns, 0.0, np.nan),
         (one_return, 0.0, np.nan),
         (pos_line, pos_line, np.nan),
         (mixed_returns, 0.0, 0.10859306069076737),
         (mixed_returns, flat_line_1, -0.06515583641446039),
-    ])
-    def test_information_ratio(self, returns, factor_returns, expected):
+    ]))
+    def test_information_ratio(self, returns, factor_returns, expected,
+                               as_array):
         assert_almost_equal(
-            empyrical.information_ratio(returns, factor_returns),
+            empyrical.information_ratio(
+                returns.values if as_array else returns,
+                factor_returns,
+            ),
             expected,
             DECIMAL_PLACES)
 
     # The magnitude of the information ratio increases as a higher
     # proportion of returns are uncorrelated with the benchmark.
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (flat_line_0, pos_line),
         (flat_line_1_tz, pos_line),
         (noise, pos_line)
-    ])
-    def test_information_ratio_noisy(self, noise_line, benchmark):
+    ]))
+    def test_information_ratio_noisy(self, noise_line, benchmark, as_array):
         noisy_returns_1 = noise_line[0:250].add(benchmark[250:], fill_value=0)
         noisy_returns_2 = noise_line[0:500].add(benchmark[500:], fill_value=0)
         noisy_returns_3 = noise_line[0:750].add(benchmark[750:], fill_value=0)
-        ir_1 = empyrical.information_ratio(noisy_returns_1, benchmark)
-        ir_2 = empyrical.information_ratio(noisy_returns_2, benchmark)
-        ir_3 = empyrical.information_ratio(noisy_returns_3, benchmark)
+        ir_1 = empyrical.information_ratio(
+            noisy_returns_1.values if as_array else noisy_returns_1,
+            benchmark,
+        )
+        ir_2 = empyrical.information_ratio(
+            noisy_returns_2.values if as_array else noisy_returns_2,
+            benchmark,
+        )
+        ir_3 = empyrical.information_ratio(
+            noisy_returns_3.values if as_array else noisy_returns_3,
+            benchmark,
+        )
         assert abs(ir_1) < abs(ir_2)
         assert abs(ir_2) < abs(ir_3)
 
     # Vertical translations change the information ratio in the
     # direction of the translation.
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (pos_line, noise, flat_line_1_tz),
         (pos_line, inv_noise, flat_line_1_tz),
         (neg_line, noise, flat_line_1_tz),
         (neg_line, inv_noise, flat_line_1_tz)
-    ])
-    def test_information_ratio_trans(self, returns, add_noise, translation):
+    ]))
+    def test_information_ratio_trans(self, returns, add_noise, translation,
+                                     as_array):
+        ir_input = returns+add_noise
         ir = empyrical.information_ratio(
-            returns+add_noise,
-            returns
+            ir_input.values if as_array else ir_input,
+            returns,
         )
+        raised_ir_input = returns+add_noise+translation
         raised_ir = empyrical.information_ratio(
-            returns+add_noise+translation,
-            returns
+            raised_ir_input.values if as_array else raised_ir_input,
+            returns,
         )
+        depressed_ir_input = returns+add_noise-translation
         depressed_ir = empyrical.information_ratio(
-            returns+add_noise-translation,
-            returns
+            depressed_ir_input.values if as_array else depressed_ir_input,
+            returns,
         )
         assert ir < raised_ir
         assert depressed_ir < ir
@@ -672,12 +737,13 @@ class TestStats(TestCase):
         (mixed_returns, -mixed_returns, (0.0, -1.0)),
     ])
     def test_alpha_beta(self, returns, benchmark, expected):
+        alpha, beta = empyrical.alpha_beta(returns, benchmark)
         assert_almost_equal(
-            empyrical.alpha_beta(returns, benchmark)[0],
+            alpha,
             expected[0],
             DECIMAL_PLACES)
         assert_almost_equal(
-            empyrical.alpha_beta(returns, benchmark)[1],
+            beta,
             expected[1],
             DECIMAL_PLACES)
 
@@ -846,13 +912,13 @@ class TestStats(TestCase):
         (mixed_returns, -mixed_returns),
     ])
     def test_alpha_beta_equality(self, returns, benchmark):
-        alpha_beta = empyrical.alpha_beta(returns, benchmark)
+        alpha, beta = empyrical.alpha_beta(returns, benchmark)
         assert_almost_equal(
-            alpha_beta[0],
+            alpha,
             empyrical.alpha(returns, benchmark),
             DECIMAL_PLACES)
         assert_almost_equal(
-            alpha_beta[1],
+            beta,
             empyrical.beta(returns, benchmark),
             DECIMAL_PLACES)
 
@@ -865,11 +931,11 @@ class TestStats(TestCase):
                                                          benchmark_arr[mask])
 
             assert_almost_equal(
-                alpha_beta[0],
+                alpha,
                 intercept
             )
             assert_almost_equal(
-                alpha_beta[1],
+                beta,
                 slope
             )
 
@@ -898,7 +964,7 @@ class TestStats(TestCase):
             1)
 
     # Regression tests for CAGR.
-    @parameterized.expand([
+    @parameterized.expand(as_array_params([
         (empty_returns, "daily", np.nan),
         (one_return, "daily", 11.274002099240244),
         (mixed_returns, "daily", 1.9135925373194231),
@@ -907,10 +973,13 @@ class TestStats(TestCase):
             [3., 3., 3.])/100,
             index=pd.date_range('2000-1-30', periods=3, freq='A')
         ), 'yearly', 0.03)
-    ])
-    def test_cagr(self, returns, period, expected):
+    ]))
+    def test_cagr(self, returns, period, expected, as_array):
         assert_almost_equal(
-            empyrical.cagr(returns, period=period),
+            empyrical.cagr(
+                returns.values if as_array else returns,
+                period=period,
+            ),
             expected,
             DECIMAL_PLACES)
 
