@@ -452,8 +452,9 @@ def sharpe_ratio(returns, risk_free=0, period=DAILY, annualization=None):
     -------
     float
         Sharpe ratio.
-    np.nan
-        If insufficient length of returns or if if adjusted returns are 0.
+
+        np.nan
+            If insufficient length of returns or if if adjusted returns are 0.
 
     Note
     -----
@@ -483,7 +484,7 @@ def sortino_ratio(returns, required_return=0, period=DAILY,
 
     Parameters
     ----------
-    returns : np.ndarray
+    returns : pd.Series or np.ndarray or pd.DataFrame
         Daily returns of the strategy, noncumulative.
         - See full explanation in :func:`~empyrical.stats.cum_returns`.
     required_return: float / series
@@ -505,9 +506,11 @@ def sortino_ratio(returns, required_return=0, period=DAILY,
 
     Returns
     -------
-    depends on input type
-    series ==> float
-    DataFrame ==> pd.Series
+    float, pd.Series
+
+        depends on input type
+        series ==> float
+        DataFrame ==> pd.Series
 
         Annualized Sortino ratio.
 
@@ -533,7 +536,7 @@ def downside_risk(returns, required_return=0, period=DAILY,
 
     Parameters
     ----------
-    returns : np.ndarray
+    returns : pd.Series or np.ndarray or pd.DataFrame
         Daily returns of the strategy, noncumulative.
         - See full explanation in :func:`~empyrical.stats.cum_returns`.
     required_return: float / series
@@ -552,7 +555,10 @@ def downside_risk(returns, required_return=0, period=DAILY,
 
     Returns
     -------
-    float
+    float, pd.Series
+        depends on input type
+        series ==> float
+        DataFrame ==> pd.Series
 
         Annualized downside deviation
 
@@ -568,7 +574,11 @@ def downside_risk(returns, required_return=0, period=DAILY,
     downside_diff[mask] = 0.0
     squares = np.square(downside_diff)
     mean_squares = nanmean(squares, axis=0)
-    return np.sqrt(mean_squares) * np.sqrt(ann_factor)
+    dside_risk = np.sqrt(mean_squares) * np.sqrt(ann_factor)
+
+    if len(returns.shape) == 2 and isinstance(returns, pd.DataFrame):
+        dside_risk = pd.Series(dside_risk, index=returns.columns)
+    return dside_risk
 
 
 def information_ratio(returns, factor_returns):
@@ -808,7 +818,7 @@ def alpha_aligned(returns, factor_returns, risk_free=0.0, period=DAILY,
     ann_factor = annualization_factor(period, annualization)
 
     if _beta is None:
-        _beta = beta(returns, factor_returns, risk_free)
+        _beta = beta_aligned(returns, factor_returns, risk_free)
 
     adj_returns = _adjust_returns(returns, risk_free)
     adj_factor_returns = _adjust_returns(factor_returns, risk_free)
@@ -895,7 +905,7 @@ def stability_of_timeseries(returns):
 
     Parameters
     ----------
-    returns : pd.Series
+    returns : pd.Series or np.ndarray
         Daily returns of the strategy, noncumulative.
         - See full explanation in :func:`~empyrical.stats.cum_returns`.
 
@@ -908,11 +918,11 @@ def stability_of_timeseries(returns):
     if len(returns) < 2:
         return np.nan
 
-    returns = returns.dropna()
+    returns = returns[~np.isnan(returns)]
 
     cum_log_returns = np.log1p(returns).cumsum()
     rhat = stats.linregress(np.arange(len(cum_log_returns)),
-                            cum_log_returns.values)[2]
+                            cum_log_returns)[2]
 
     return rhat ** 2
 
@@ -925,7 +935,7 @@ def tail_ratio(returns):
 
     Parameters
     ----------
-    returns : pd.Series
+    returns : pd.Series or np.ndarray
         Daily returns of the strategy, noncumulative.
          - See full explanation in :func:`~empyrical.stats.cum_returns`.
 
@@ -940,7 +950,7 @@ def tail_ratio(returns):
         return np.nan
 
     # Be tolerant of nan's
-    returns = returns.dropna()
+    returns = returns[~np.isnan(returns)]
     if len(returns) < 1:
         return np.nan
 
