@@ -253,7 +253,7 @@ def aggregate_returns(returns, convert_to):
     """
 
     def cumulate_returns(x):
-        return cum_returns(x)[-1]
+        return cum_returns(x).iloc[-1]
 
     if convert_to == WEEKLY:
         grouping = [lambda x: x.year, lambda x: x.isocalendar()[1]]
@@ -331,7 +331,9 @@ def annual_return(returns, period=DAILY, annualization=None):
 
     num_years = float(len(returns)) / ann_factor
     start_value = 100
-    end_value = cum_returns(returns, starting_value=start_value)[-1]
+    # Pass array to ensure index -1 looks up successfully.
+    end_value = cum_returns(np.asanyarray(returns),
+                            starting_value=start_value)[-1]
     total_return = (end_value - start_value) / start_value
     annual_return = (1. + total_return) ** (1. / num_years) - 1
 
@@ -1047,7 +1049,8 @@ def cagr(returns, period=DAILY, annualization=None):
 
     ann_factor = annualization_factor(period, annualization)
     no_years = len(returns) / float(ann_factor)
-    ending_value = cum_returns(returns, starting_value=1)[-1]
+    # Pass array to ensure index -1 looks up successfully.
+    ending_value = cum_returns(np.asanyarray(returns), starting_value=1)[-1]
 
     return ending_value ** (1. / no_years) - 1
 

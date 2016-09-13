@@ -1,6 +1,8 @@
 from __future__ import division
 
 import random
+from copy import copy
+from operator import attrgetter
 from unittest import TestCase, skip, SkipTest
 
 from nose_parameterized import parameterized
@@ -22,14 +24,14 @@ class ReturnTypeEmpyricalProxy(object):
         self._return_types = return_types
 
     def __call__(self, **kwargs):
-        attrs = {
-            attr_name[1:]: attr
-            if kwargs.get(attr_name[1:]) is None else kwargs[attr_name[1:]]
-            for attr_name, attr in iteritems(self.__dict__)
-            if attr_name != '_test_case'
-        }
+        dupe = copy(self)
 
-        return type(self)(self._test_case, **attrs)
+        for k, v in iteritems(kwargs):
+            attr = '_' + k
+            if hasattr(dupe, attr):
+                setattr(dupe, attr, v)
+
+        return dupe
 
     def __getattr__(self, item):
         return self._check_return_type(getattr(empyrical, item))
@@ -44,35 +46,44 @@ class ReturnTypeEmpyricalProxy(object):
         return check_return_type
 
 
-class PassArraysEmpyricalProxy(ReturnTypeEmpyricalProxy):
-    def __init__(self, test_case, return_types,
-                 explicit=False, pandas_only=False):
-        super(PassArraysEmpyricalProxy, self).__init__(test_case, return_types)
-        self._explicit = explicit
+class ConvertPandasEmpyricalProxy(ReturnTypeEmpyricalProxy):
+    def __init__(self, test_case, return_types, convert, pandas_only=False):
+        super(ConvertPandasEmpyricalProxy, self).__init__(test_case,
+                                                          return_types)
+        self._convert = convert
         self._pandas_only = pandas_only
 
     def __getattr__(self, item):
         if self._pandas_only:
             raise SkipTest("empyrical function expects pandas-only inputs")
 
-        if not self._explicit:
-            if item in ('alpha', 'beta', 'alpha_beta'):
-                item += '_aligned'
-
         func = getattr(empyrical, item)
 
         @self._check_return_type
         @wraps(func)
         def pass_arrays(*args, **kwargs):
-            args = [arg.values if isinstance(arg, NDFrame) else arg
+            args = [self._convert(arg) if isinstance(arg, NDFrame) else arg
                     for arg in args]
             kwargs = {
-                k: v.values if isinstance(v, NDFrame) else v
+                k: self._convert(v) if isinstance(v, NDFrame) else v
                 for k, v in iteritems(kwargs)
             }
             return func(*args, **kwargs)
 
         return pass_arrays
+
+
+class PassArraysEmpyricalProxy(ConvertPandasEmpyricalProxy):
+    def __init__(self, test_case, return_types):
+        super(PassArraysEmpyricalProxy, self).__init__(
+            test_case, return_types, attrgetter('values'),
+        )
+
+    def __getattr__(self, item):
+        if item in ('alpha', 'beta', 'alpha_beta'):
+            item += '_aligned'
+
+        return super(PassArraysEmpyricalProxy, self).__getattr__(item)
 
 
 class TestStats(TestCase):
@@ -1043,10 +1054,14 @@ class TestStats(TestCase):
 class TestStatsArrays(TestStats):
     @property
     def empyrical(self):
-        """
-
-        Returns
-        -------
-        empyrical
-        """
         return PassArraysEmpyricalProxy(self, (np.ndarray, float))
+
+
+class TestStatsIntIndex(TestStats):
+    @property
+    def empyrical(self):
+        return ConvertPandasEmpyricalProxy(
+            self,
+            (pd.Series, float),
+            lambda obj: type(obj)(obj.values, index=np.arange(len(obj))),
+        )
