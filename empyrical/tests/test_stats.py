@@ -90,7 +90,7 @@ class TestStats(TestCase):
         -------
         empyrical
         """
-        return ReturnTypeEmpyricalProxy(self, (pd.Series, tuple, float))
+        return ReturnTypeEmpyricalProxy(self, (pd.Series, float))
 
     # Simple benchmark, no drawdown
     simple_benchmark = pd.Series(
@@ -204,6 +204,7 @@ class TestStats(TestCase):
         'two': pd.Series(two, index=df_index_month)})
 
     @parameterized.expand([
+        (empty_returns, 0, []),
         (mixed_returns, 0, [0.0, 0.01, 0.111, 0.066559, 0.08789, 0.12052,
                             0.14293, 0.15436, 0.03893]),
         (mixed_returns, 100, [100.0, 101.0, 111.1, 106.65599, 108.78912,
@@ -752,7 +753,8 @@ class TestStats(TestCase):
     ])
     def test_alpha_beta(self, returns, benchmark, expected):
         alpha, beta = self.empyrical(
-            pandas_only=len(returns) != len(benchmark)
+            pandas_only=len(returns) != len(benchmark),
+            return_types=tuple,
         ).alpha_beta(returns, benchmark)
         assert_almost_equal(
             alpha,
@@ -815,11 +817,12 @@ class TestStats(TestCase):
         # Translate returns and generate alphas and betas.
         returns_depressed = returns-translation
         returns_raised = returns+translation
-        (alpha_depressed, beta_depressed) = self.empyrical.alpha_beta(
+        alpha_beta = self.empyrical(return_types=tuple).alpha_beta
+        (alpha_depressed, beta_depressed) = alpha_beta(
             returns_depressed, benchmark)
-        (alpha_standard, beta_standard) = self.empyrical.alpha_beta(
+        (alpha_standard, beta_standard) = alpha_beta(
             returns, benchmark)
-        (alpha_raised, beta_raised) = self.empyrical.alpha_beta(
+        (alpha_raised, beta_raised) = alpha_beta(
             returns_raised, benchmark)
         # Alpha should change proportionally to how much returns were
         # translated.
@@ -868,10 +871,9 @@ class TestStats(TestCase):
         returns_more = pd.Series(ret_more, index=index)
         benchmark_more = pd.Series(bench_more, index=index)
         # Calculate alpha/beta values
-        alpha_less, beta_less = self.empyrical.alpha_beta(returns_less,
-                                                          benchmark_less)
-        alpha_more, beta_more = self.empyrical.alpha_beta(returns_more,
-                                                          benchmark_more)
+        alpha_beta = self.empyrical(return_types=tuple).alpha_beta
+        alpha_less, beta_less = alpha_beta(returns_less, benchmark_less)
+        alpha_more, beta_more = alpha_beta(returns_more, benchmark_more)
         # Alpha determines by how much returns vary from the benchmark return.
         # A lower correlation leads to higher alpha.
         assert alpha_less > alpha_more
@@ -885,7 +887,8 @@ class TestStats(TestCase):
         (sparse_noise, sparse_noise),
     ])
     def test_alpha_beta_with_nan_inputs(self, returns, benchmark):
-        alpha, beta = self.empyrical.alpha_beta(returns, benchmark)
+        alpha, beta = self.empyrical(return_types=tuple).alpha_beta(returns,
+                                                                    benchmark)
         self.assertFalse(np.isnan(alpha))
         self.assertFalse(np.isnan(beta))
 
@@ -929,7 +932,8 @@ class TestStats(TestCase):
     ])
     def test_alpha_beta_equality(self, returns, benchmark):
         alpha, beta = self.empyrical(
-            pandas_only=len(returns) != len(benchmark)
+            pandas_only=len(returns) != len(benchmark),
+            return_types=tuple,
         ).alpha_beta(returns, benchmark)
         assert_almost_equal(
             alpha,
@@ -1050,4 +1054,4 @@ class TestStatsArrays(TestStats):
         -------
         empyrical
         """
-        return PassArraysEmpyricalProxy(self, (np.ndarray, tuple, float))
+        return PassArraysEmpyricalProxy(self, (np.ndarray, float))

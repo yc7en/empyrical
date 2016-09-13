@@ -138,7 +138,7 @@ def cum_returns(returns, starting_value=0):
     # to use.
 
     if len(returns) < 1:
-        return [np.nan]
+        return type(returns)([])
 
     if np.isnan(returns[0]):
         returns = returns.copy()
@@ -152,28 +152,84 @@ def cum_returns(returns, starting_value=0):
         return df_cum * starting_value
 
 
-def array_wrap(f):
-    @wraps(f)
-    def _wrapit(obj, *args, **kwds):
-        try:
-            wrap = obj.__array_wrap__
-        except AttributeError:
-            wrap = None
-        result = f(obj, *args, **kwds)
-        if wrap:
-            if not isinstance(result, np.ndarray):
-                result = np.asarray(result)
-            result = wrap(result)
-        return result
-    return _wrapit
+def array_wrap(arg_name, _not_specified=object()):
+    """
+    Decorator for functions working on array_likes that ensures the type of
+    output matches that of the input, delegating to the input's __array_wrap__.
+
+    Parameters
+    ----------
+    arg_name : str
+
+        The name of the array_like arg to the wrapped function. Should be the
+        first positional parameter to the wrapped function.
+
+    """
+    def dec(f):
+        @wraps(f)
+        def _wrapit(*args, **kwds):
+            obj = kwds.get(arg_name, _not_specified)
+            if obj is _not_specified:
+                obj = args[0]
+
+            try:
+                wrap = obj.__array_wrap__
+            except AttributeError:
+                wrap = None
+            result = f(*args, **kwds)
+            if wrap:
+                if not isinstance(result, np.ndarray):
+                    result = np.asarray(result)
+                result = wrap(result)
+            return result
+        return _wrapit
+    return dec
 
 
-@array_wrap
-def nancumsum(a):
+@array_wrap('a')
+def nancumsum(a, axis=None, dtype=None):
+    """
+    Return the cumulative sum of array elements over a given axis treating Not
+    a Numbers (NaNs) as zero.  The cumulative sum does not change when NaNs are
+    encountered and leading NaNs are replaced by zeros.
+
+    Handles a subset of the edge cases handled by the nancumsum added in numpy
+    1.12.0.
+
+    Parameters
+    ----------
+    a : np.ndarray or pd.Series
+
+        Input array.
+
+    axis : int, optional
+
+        Axis along which the cumulative sum is computed. The default
+        (None) is to compute the cumsum over the flattened array.
+
+    dtype : np.dtype, optional
+
+        Type of the returned array and of the accumulator in which the
+        elements are summed.  If `dtype` is not specified, it defaults
+        to the dtype of `a`, unless `a` has an integer dtype with a
+        precision less than that of the default platform integer.  In
+        that case, the default platform integer is used.
+
+    Returns
+    -------
+    nancumsum : np.ndarray or pd.Series
+
+        A new array that has the same size as a, and the same shape as a.
+
+    See Also
+    --------
+    numpy.cumsum : Cumulative sum across array propagating NaNs.
+
+    """
     y = np.array(a, subok=True)
     mask = np.isnan(a)
     np.putmask(y, mask, 0.)
-    result = np.cumsum(y)
+    result = np.cumsum(y, axis=axis, dtype=dtype)
     np.putmask(result, mask, np.nan)
     return result
 
