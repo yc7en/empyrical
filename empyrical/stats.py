@@ -462,7 +462,7 @@ def sharpe_ratio(returns, risk_free=0, period=DAILY, annualization=None):
 
     """
 
-    if len(returns) < 1:
+    if len(returns) < 2:
         return np.nan
 
     ann_factor = annualization_factor(period, annualization)
