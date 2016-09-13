@@ -75,22 +75,7 @@ class PassArraysEmpyricalProxy(ReturnTypeEmpyricalProxy):
         return pass_arrays
 
 
-class EmpyricalProperty(property):
-    def __getattr__(self, item):
-        return getattr(empyrical, item)
-
-
 class TestStats(TestCase):
-
-    @EmpyricalProperty
-    def empyrical(self):
-        """
-
-        Returns
-        -------
-        empyrical
-        """
-        return ReturnTypeEmpyricalProxy(self, (pd.Series, float))
 
     # Simple benchmark, no drawdown
     simple_benchmark = pd.Series(
@@ -1044,9 +1029,19 @@ class TestStats(TestCase):
             noisy_cagr_2,
             1)
 
+    @property
+    def empyrical(self):
+        """
+
+        Returns
+        -------
+        empyrical
+        """
+        return ReturnTypeEmpyricalProxy(self, (pd.Series, float))
+
 
 class TestStatsArrays(TestStats):
-    @EmpyricalProperty
+    @property
     def empyrical(self):
         """
 
