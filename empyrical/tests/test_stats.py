@@ -800,12 +800,12 @@ class TestStats(TestCase):
     # When faced with data containing np.nan, do not return np.nan. Calculate
     # alpha and beta using dates containing both.
     @parameterized.expand([
-        (sparse_noise, sparse_flat_line_1_tz),
+        (sparse_noise, sparse_noise),
     ])
     def test_alpha_beta_with_nan_inputs(self, returns, benchmark):
         alpha, beta = empyrical.alpha_beta(returns, benchmark)
-        self.assertNotEqual(alpha, np.nan)
-        self.assertNotEqual(beta, np.nan)
+        self.assertFalse(np.isnan(alpha))
+        self.assertFalse(np.isnan(beta))
 
     @parameterized.expand([
         (empty_returns, simple_benchmark, np.nan),
@@ -933,7 +933,7 @@ class TestStats(TestCase):
         (sparse_noise,)
     ])
     def test_cagr_with_nan_inputs(self, returns):
-        self.assertNotEqual(empyrical.cagr(returns), np.nan)
+        self.assertFalse(np.isnan(empyrical.cagr(returns)))
 
     # Adding noise to returns should not significantly alter the cagr values.
     # Confirm that adding noise does not change cagr values to one
