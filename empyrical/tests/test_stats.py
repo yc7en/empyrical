@@ -18,74 +18,6 @@ import empyrical
 DECIMAL_PLACES = 8
 
 
-class ReturnTypeEmpyricalProxy(object):
-    def __init__(self, test_case, return_types):
-        self._test_case = test_case
-        self._return_types = return_types
-
-    def __call__(self, **kwargs):
-        dupe = copy(self)
-
-        for k, v in iteritems(kwargs):
-            attr = '_' + k
-            if hasattr(dupe, attr):
-                setattr(dupe, attr, v)
-
-        return dupe
-
-    def __getattr__(self, item):
-        return self._check_return_type(getattr(empyrical, item))
-
-    def _check_return_type(self, func):
-        @wraps(func)
-        def check_return_type(*args, **kwargs):
-            result = func(*args, **kwargs)
-            self._test_case.assertIsInstance(result, self._return_types)
-            return result
-
-        return check_return_type
-
-
-class ConvertPandasEmpyricalProxy(ReturnTypeEmpyricalProxy):
-    def __init__(self, test_case, return_types, convert, pandas_only=False):
-        super(ConvertPandasEmpyricalProxy, self).__init__(test_case,
-                                                          return_types)
-        self._convert = convert
-        self._pandas_only = pandas_only
-
-    def __getattr__(self, item):
-        if self._pandas_only:
-            raise SkipTest("empyrical function expects pandas-only inputs")
-
-        func = getattr(empyrical, item)
-
-        @self._check_return_type
-        @wraps(func)
-        def pass_arrays(*args, **kwargs):
-            args = [self._convert(arg) if isinstance(arg, NDFrame) else arg
-                    for arg in args]
-            kwargs = {
-                k: self._convert(v) if isinstance(v, NDFrame) else v
-                for k, v in iteritems(kwargs)
-            }
-            return func(*args, **kwargs)
-
-        return pass_arrays
-
-
-class PassArraysEmpyricalProxy(ConvertPandasEmpyricalProxy):
-    def __init__(self, test_case, return_types):
-        super(PassArraysEmpyricalProxy, self).__init__(
-            test_case, return_types, attrgetter('values'),
-        )
-
-    def __getattr__(self, item):
-        if item in ('alpha', 'beta', 'alpha_beta'):
-            item += '_aligned'
-
-        return super(PassArraysEmpyricalProxy, self).__getattr__(item)
-
-
 class TestStats(TestCase):
 
     # Simple benchmark, no drawdown
@@ -1065,3 +997,72 @@ class TestStatsIntIndex(TestStats):
             (pd.Series, float),
             lambda obj: type(obj)(obj.values, index=np.arange(len(obj))),
         )
+
+
+class ReturnTypeEmpyricalProxy(object):
+    def __init__(self, test_case, return_types):
+        self._test_case = test_case
+        self._return_types = return_types
+
+    def __call__(self, **kwargs):
+        dupe = copy(self)
+
+        for k, v in iteritems(kwargs):
+            attr = '_' + k
+            if hasattr(dupe, attr):
+                setattr(dupe, attr, v)
+
+        return dupe
+
+    def __getattr__(self, item):
+        return self._check_return_type(getattr(empyrical, item))
+
+    def _check_return_type(self, func):
+        @wraps(func)
+        def check_return_type(*args, **kwargs):
+            result = func(*args, **kwargs)
+            self._test_case.assertIsInstance(result, self._return_types)
+            return result
+
+        return check_return_type
+
+
+class ConvertPandasEmpyricalProxy(ReturnTypeEmpyricalProxy):
+    def __init__(self, test_case, return_types, convert, pandas_only=False):
+        super(ConvertPandasEmpyricalProxy, self).__init__(test_case,
+                                                          return_types)
+        self._convert = convert
+        self._pandas_only = pandas_only
+
+    def __getattr__(self, item):
+        if self._pandas_only:
+            raise SkipTest("empyrical.%s expects pandas-only inputs that have "
+                           "dt indices/labels" % item)
+
+        func = getattr(empyrical, item)
+
+        @self._check_return_type
+        @wraps(func)
+        def pass_arrays(*args, **kwargs):
+            args = [self._convert(arg) if isinstance(arg, NDFrame) else arg
+                    for arg in args]
+            kwargs = {
+                k: self._convert(v) if isinstance(v, NDFrame) else v
+                for k, v in iteritems(kwargs)
+            }
+            return func(*args, **kwargs)
+
+        return pass_arrays
+
+
+class PassArraysEmpyricalProxy(ConvertPandasEmpyricalProxy):
+    def __init__(self, test_case, return_types):
+        super(PassArraysEmpyricalProxy, self).__init__(
+            test_case, return_types, attrgetter('values'),
+        )
+
+    def __getattr__(self, item):
+        if item in ('alpha', 'beta', 'alpha_beta'):
+            item += '_aligned'
+
+        return super(PassArraysEmpyricalProxy, self).__getattr__(item)
