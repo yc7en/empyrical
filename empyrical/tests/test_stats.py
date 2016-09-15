@@ -975,21 +975,53 @@ class TestStats(TestCase):
     @property
     def empyrical(self):
         """
+        This returns a wrapper around the empyrical module, so tests can
+        perform input conversions or return type checks on each call to an
+        empyrical function.
+
+        Each test case subclass can override this property, so that all the
+        same tests are run, but with different function inputs or type checks.
+
+        This was done as part of enabling empyrical functions to work with
+        inputs of either pd.Series or np.ndarray, with the expectation that
+        they will return the same type as their input.
 
         Returns
         -------
         empyrical
+
+        Notes
+        -----
+        Since some parameterized test parameters refer to attributes on the
+        real empyrical module at class body scope, this property must be
+        defined later in the body than those references. That way, the
+        attributes are looked up on the empyrical module, not this property.
+
+        e.g. empyrical.DAILY
         """
         return ReturnTypeEmpyricalProxy(self, (pd.Series, float))
 
 
 class TestStatsArrays(TestStats):
+    """
+    Tests pass np.ndarray inputs to empyrical and assert that outputs are of
+    type np.ndarray or float.
+
+    """
     @property
     def empyrical(self):
         return PassArraysEmpyricalProxy(self, (np.ndarray, float))
 
 
 class TestStatsIntIndex(TestStats):
+    """
+    Tests pass int-indexed pd.Series inputs to empyrical and assert that
+    outputs are of type pd.Series or float.
+
+    This prevents a regression where we're indexing with ints into a pd.Series
+    to find the last item and get a KeyError when the series is int-indexed.
+
+    """
     @property
     def empyrical(self):
         return ConvertPandasEmpyricalProxy(
@@ -1000,6 +1032,14 @@ class TestStatsIntIndex(TestStats):
 
 
 class ReturnTypeEmpyricalProxy(object):
+    """
+    A wrapper around the empyrical module which, on each function call, asserts
+    that the type of the return value is in a given set.
+
+    Calling an instance with kwargs will return a new copy with those
+    attributes overridden.
+
+    """
     def __init__(self, test_case, return_types):
         self._test_case = test_case
         self._return_types = return_types
@@ -1013,6 +1053,11 @@ class ReturnTypeEmpyricalProxy(object):
                 setattr(dupe, attr, v)
 
         return dupe
+
+    def __copy__(self):
+        newone = type(self).__new__(type(self))
+        newone.__dict__.update(self.__dict__)
+        return newone
 
     def __getattr__(self, item):
         return self._check_return_type(getattr(empyrical, item))
@@ -1028,6 +1073,14 @@ class ReturnTypeEmpyricalProxy(object):
 
 
 class ConvertPandasEmpyricalProxy(ReturnTypeEmpyricalProxy):
+    """
+    A ReturnTypeEmpyricalProxy which also converts pandas NDFrame inputs to
+    empyrical functions according to the given conversion method.
+
+    Calling an instance with a truthy pandas_only will return a new instance
+    which will skip the test when an empyrical function is called.
+
+    """
     def __init__(self, test_case, return_types, convert, pandas_only=False):
         super(ConvertPandasEmpyricalProxy, self).__init__(test_case,
                                                           return_types)
@@ -1043,7 +1096,7 @@ class ConvertPandasEmpyricalProxy(ReturnTypeEmpyricalProxy):
 
         @self._check_return_type
         @wraps(func)
-        def pass_arrays(*args, **kwargs):
+        def convert_args(*args, **kwargs):
             args = [self._convert(arg) if isinstance(arg, NDFrame) else arg
                     for arg in args]
             kwargs = {
@@ -1052,10 +1105,19 @@ class ConvertPandasEmpyricalProxy(ReturnTypeEmpyricalProxy):
             }
             return func(*args, **kwargs)
 
-        return pass_arrays
+        return convert_args
 
 
 class PassArraysEmpyricalProxy(ConvertPandasEmpyricalProxy):
+    """
+    A ConvertPandasEmpyricalProxy which converts NDFrame inputs to empyrical
+    functions to numpy arrays.
+
+    Calls the underlying
+    empyrical.[alpha|beta|alpha_beta]_aligned functions directly, instead of
+    the wrappers which align Series first.
+
+    """
     def __init__(self, test_case, return_types):
         super(PassArraysEmpyricalProxy, self).__init__(
             test_case, return_types, attrgetter('values'),
