@@ -7,7 +7,7 @@ from unittest import TestCase, skip, SkipTest
 
 from nose_parameterized import parameterized
 import numpy as np
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_allclose
 import pandas as pd
 from pandas.core.generic import NDFrame
 from scipy import stats
@@ -1036,6 +1036,8 @@ class ReturnTypeEmpyricalProxy(object):
     A wrapper around the empyrical module which, on each function call, asserts
     that the type of the return value is in a given set.
 
+    Also asserts that inputs were not modified by the empyrical function call.
+
     Calling an instance with kwargs will return a new copy with those
     attributes overridden.
 
@@ -1060,7 +1062,11 @@ class ReturnTypeEmpyricalProxy(object):
         return newone
 
     def __getattr__(self, item):
-        return self._check_return_type(getattr(empyrical, item))
+        return self._check_input_not_mutated(
+            self._check_return_type(
+                getattr(empyrical, item)
+            )
+        )
 
     def _check_return_type(self, func):
         @wraps(func)
@@ -1070,6 +1076,41 @@ class ReturnTypeEmpyricalProxy(object):
             return result
 
         return check_return_type
+
+    def _check_input_not_mutated(self, func):
+        @wraps(func)
+        def check_not_mutated(*args, **kwargs):
+            # Copy inputs to compare them to originals later.
+            arg_copies = [(i, arg.copy()) for i, arg in enumerate(args)
+                          if isinstance(arg, (NDFrame, np.ndarray))]
+            kwarg_copies = {
+                k: v.copy() for k, v in iteritems(kwargs)
+                if isinstance(v, (NDFrame, np.ndarray))
+            }
+
+            result = func(*args, **kwargs)
+
+            # Check that inputs weren't mutated by func.
+            for i, arg_copy in arg_copies:
+                assert_allclose(
+                    args[i],
+                    arg_copy,
+                    atol=0.5 * 10 ** (-DECIMAL_PLACES),
+                    err_msg="Input 'arg %s' mutated by %s"
+                            % (i, func.__name__),
+                )
+            for kwarg_name, kwarg_copy in iteritems(kwarg_copies):
+                assert_allclose(
+                    kwargs[kwarg_name],
+                    kwarg_copy,
+                    atol=0.5 * 10 ** (-DECIMAL_PLACES),
+                    err_msg="Input '%s' mutated by %s"
+                            % (kwarg_name, func.__name__),
+                )
+
+            return result
+
+        return check_not_mutated
 
 
 class ConvertPandasEmpyricalProxy(ReturnTypeEmpyricalProxy):
@@ -1092,9 +1133,8 @@ class ConvertPandasEmpyricalProxy(ReturnTypeEmpyricalProxy):
             raise SkipTest("empyrical.%s expects pandas-only inputs that have "
                            "dt indices/labels" % item)
 
-        func = getattr(empyrical, item)
+        func = super(ConvertPandasEmpyricalProxy, self).__getattr__(item)
 
-        @self._check_return_type
         @wraps(func)
         def convert_args(*args, **kwargs):
             args = [self._convert(arg) if isinstance(arg, NDFrame) else arg
