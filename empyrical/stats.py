@@ -140,7 +140,7 @@ def cum_returns(returns, starting_value=0):
     if len(returns) < 1:
         return type(returns)([])
 
-    if np.isnan(returns[0]):
+    if np.isnan(np.asanyarray(returns)[0]):
         returns = returns.copy()
         returns[0] = 0.
 
@@ -525,7 +525,7 @@ def sharpe_ratio(returns, risk_free=0, period=DAILY, annualization=None):
 
     ann_factor = annualization_factor(period, annualization)
 
-    returns_risk_adj = _adjust_returns(returns, risk_free)
+    returns_risk_adj = np.asanyarray(_adjust_returns(returns, risk_free))
     returns_risk_adj = returns_risk_adj[~np.isnan(returns_risk_adj)]
 
     if np.std(returns_risk_adj, ddof=1) == 0:
@@ -976,6 +976,7 @@ def stability_of_timeseries(returns):
     if len(returns) < 2:
         return np.nan
 
+    returns = np.asanyarray(returns)
     returns = returns[~np.isnan(returns)]
 
     cum_log_returns = np.log1p(returns).cumsum()
@@ -1007,6 +1008,7 @@ def tail_ratio(returns):
     if len(returns) < 1:
         return np.nan
 
+    returns = np.asanyarray(returns)
     # Be tolerant of nan's
     returns = returns[~np.isnan(returns)]
     if len(returns) < 1:
