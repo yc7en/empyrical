@@ -158,13 +158,13 @@ class TestStats(TestCase):
         (mixed_returns, 100, 103.89310),
         (negative_returns, 0, -0.36590)
     ])
-    def test_total_returns(self, returns, starting_value, expected):
-        total_returns = self.empyrical.total_returns(
+    def test_total_return(self, returns, starting_value, expected):
+        total_return = self.empyrical.total_return(
             returns,
             starting_value=starting_value,
         )
         assert_almost_equal(
-            total_returns,
+            total_return,
             expected,
             4)
 

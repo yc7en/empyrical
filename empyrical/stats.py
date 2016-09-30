@@ -152,7 +152,7 @@ def cum_returns(returns, starting_value=0):
         return df_cum * starting_value
 
 
-def total_returns(returns, starting_value=0):
+def total_return(returns, starting_value=0):
     """
     Compute total returns from simple returns.
 
@@ -1088,7 +1088,7 @@ def cagr(returns, period=DAILY, annualization=None):
 
 
 SIMPLE_STAT_FUNCS = [
-    total_returns,
+    total_return,
     annual_return,
     annual_volatility,
     sharpe_ratio,
