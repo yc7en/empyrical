@@ -178,7 +178,12 @@ def total_returns(returns, starting_value=0):
     if len(returns) == 0:
         return np.nan
 
-    return cum_returns(returns, starting_value).iloc[-1]
+    cumulative_returns = cum_returns(returns, starting_value)
+
+    if isinstance(cumulative_returns, np.ndarray):
+        return cumulative_returns[-1]
+    else:
+        return cum_returns(returns, starting_value).iloc[-1]
 
 
 def array_wrap(arg_name, _not_specified=object()):
@@ -1087,6 +1092,7 @@ def cagr(returns, period=DAILY, annualization=None):
 
 
 SIMPLE_STAT_FUNCS = [
+    total_returns,
     annual_return,
     annual_volatility,
     sharpe_ratio,
