@@ -178,12 +178,8 @@ def total_returns(returns, starting_value=0):
     if len(returns) == 0:
         return np.nan
 
-    cumulative_returns = cum_returns(returns, starting_value)
-
-    if isinstance(cumulative_returns, np.ndarray):
-        return cumulative_returns[-1]
-    else:
-        return cum_returns(returns, starting_value).iloc[-1]
+    return cum_returns(np.asanyarray(returns),
+                       starting_value=starting_value)[-1]
 
 
 def array_wrap(arg_name, _not_specified=object()):
