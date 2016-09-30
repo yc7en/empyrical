@@ -152,6 +152,35 @@ def cum_returns(returns, starting_value=0):
         return df_cum * starting_value
 
 
+def total_returns(returns, starting_value=0):
+    """
+    Compute total returns from simple returns.
+
+    Parameters
+    ----------
+    returns : pd.Series or np.ndarray
+        Returns of the strategy as a percentage, noncumulative.
+         - Time series with decimal returns.
+         - Example:
+            2015-07-16    -0.012143
+            2015-07-17    0.045350
+            2015-07-20    0.030957
+            2015-07-21    0.004902.
+    starting_value : float, optional
+       The starting returns.
+
+    Returns
+    -------
+    float
+
+    """
+
+    if len(returns) == 0:
+        return np.nan
+
+    return cum_returns(returns, starting_value).iloc[-1]
+
+
 def array_wrap(arg_name, _not_specified=object()):
     """
     Decorator for functions working on array_likes that ensures the type of
