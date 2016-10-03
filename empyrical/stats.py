@@ -152,7 +152,7 @@ def cum_returns(returns, starting_value=0):
         return df_cum * starting_value
 
 
-def total_return(returns, starting_value=0):
+def cum_returns_final(returns, starting_value=0):
     """
     Compute total returns from simple returns.
 
@@ -364,8 +364,8 @@ def annual_return(returns, period=DAILY, annualization=None):
     # Pass array to ensure index -1 looks up successfully.
     end_value = cum_returns(np.asanyarray(returns),
                             starting_value=start_value)[-1]
-    total_return = (end_value - start_value) / start_value
-    annual_return = (1. + total_return) ** (1. / num_years) - 1
+    cum_returns_final = (end_value - start_value) / start_value
+    annual_return = (1. + cum_returns_final) ** (1. / num_years) - 1
 
     return annual_return
 
@@ -1088,7 +1088,7 @@ def cagr(returns, period=DAILY, annualization=None):
 
 
 SIMPLE_STAT_FUNCS = [
-    total_return,
+    cum_returns_final,
     annual_return,
     annual_volatility,
     sharpe_ratio,

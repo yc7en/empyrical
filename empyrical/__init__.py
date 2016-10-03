@@ -20,7 +20,7 @@ del get_versions
 
 from .stats import (
     cum_returns,
-    total_return,
+    cum_returns_final,
     aggregate_returns,
     max_drawdown,
     annual_return,
