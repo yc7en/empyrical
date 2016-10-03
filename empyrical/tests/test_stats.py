@@ -152,6 +152,23 @@ class TestStats(TestCase):
                 4)
 
     @parameterized.expand([
+        (empty_returns, 0, np.nan),
+        (one_return, 0, one_return[0]),
+        (mixed_returns, 0, 0.03893),
+        (mixed_returns, 100, 103.89310),
+        (negative_returns, 0, -0.36590)
+    ])
+    def test_cum_returns_final(self, returns, starting_value, expected):
+        cum_returns_final = self.empyrical.cum_returns_final(
+            returns,
+            starting_value=starting_value,
+        )
+        assert_almost_equal(
+            cum_returns_final,
+            expected,
+            4)
+
+    @parameterized.expand([
         (simple_benchmark, empyrical.WEEKLY, [0.0,
                                               0.040604010000000024,
                                               0.0]),

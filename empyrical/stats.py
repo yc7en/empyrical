@@ -152,6 +152,36 @@ def cum_returns(returns, starting_value=0):
         return df_cum * starting_value
 
 
+def cum_returns_final(returns, starting_value=0):
+    """
+    Compute total returns from simple returns.
+
+    Parameters
+    ----------
+    returns : pd.Series or np.ndarray
+        Returns of the strategy as a percentage, noncumulative.
+         - Time series with decimal returns.
+         - Example:
+            2015-07-16    -0.012143
+            2015-07-17    0.045350
+            2015-07-20    0.030957
+            2015-07-21    0.004902.
+    starting_value : float, optional
+       The starting returns.
+
+    Returns
+    -------
+    float
+
+    """
+
+    if len(returns) == 0:
+        return np.nan
+
+    return cum_returns(np.asanyarray(returns),
+                       starting_value=starting_value)[-1]
+
+
 def array_wrap(arg_name, _not_specified=object()):
     """
     Decorator for functions working on array_likes that ensures the type of
@@ -334,8 +364,8 @@ def annual_return(returns, period=DAILY, annualization=None):
     # Pass array to ensure index -1 looks up successfully.
     end_value = cum_returns(np.asanyarray(returns),
                             starting_value=start_value)[-1]
-    total_return = (end_value - start_value) / start_value
-    annual_return = (1. + total_return) ** (1. / num_years) - 1
+    cum_returns_final = (end_value - start_value) / start_value
+    annual_return = (1. + cum_returns_final) ** (1. / num_years) - 1
 
     return annual_return
 
@@ -1058,6 +1088,7 @@ def cagr(returns, period=DAILY, annualization=None):
 
 
 SIMPLE_STAT_FUNCS = [
+    cum_returns_final,
     annual_return,
     annual_volatility,
     sharpe_ratio,
