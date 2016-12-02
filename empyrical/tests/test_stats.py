@@ -138,12 +138,7 @@ class TestStats(TestCase):
         (mixed_returns, 100, [100.0, 101.0, 111.1, 106.65599, 108.78912,
                               112.05279, 114.29384, 115.43678, 103.89310]),
         (negative_returns, 0, [0.0, -0.06, -0.1258, -0.13454, -0.21243,
-                               -0.22818, -0.27449, -0.33253, -0.36590]),
-        ([mixed_returns, negative_returns], 0, [
-            [0.0, 0.01, 0.111, 0.066559, 0.08789, 0.12052, 0.14293,
-                0.15436, 0.03893],
-            [0.0, -0.06, -0.1258, -0.13454, -0.21243, -0.22818, -0.27449,
-                -0.33253, -0.36590]])
+                               -0.22818, -0.27449, -0.33253, -0.36590])
     ])
     def test_cum_returns(self, returns, starting_value, expected):
         cum_returns = self.empyrical.cum_returns(
@@ -155,6 +150,25 @@ class TestStats(TestCase):
                 cum_returns[i],
                 expected[i],
                 4)
+
+    @parameterized.expand([
+        ([mixed_returns, negative_returns], 0, [
+            [0.0, 0.01, 0.111, 0.066559, 0.08789, 0.12052, 0.14293,
+                0.15436, 0.03893],
+            [0.0, -0.06, -0.1258, -0.13454, -0.21243, -0.22818, -0.27449,
+                -0.33253, -0.36590]])
+    ])
+    def test_cum_returns_2d(self, returns, starting_value, expected):
+        cum_returns = self.empyrical.cum_returns(
+            returns,
+            starting_value=starting_value,
+        )
+        for h in range(len(returns)):
+            for i in range(returns[h].size):
+                assert_almost_equal(
+                    cum_returns[h][i],
+                    expected[h][i],
+                    4)
 
     @parameterized.expand([
         (empty_returns, 0, np.nan),
