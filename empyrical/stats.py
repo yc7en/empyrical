@@ -142,14 +142,11 @@ def cum_returns(returns, starting_value=0):
     if len(returns) < 1:
         return type(returns)([])
 
-    if isinstance(returns, pd.DataFrame):
-        df_cum = (returns.fillna(0) + 1).cumprod()
+    if np.all(np.isnan(np.asanyarray(returns)[0])):
+        returns = returns.copy()
+        returns[0] = 0.
 
-    else:
-        if np.all(np.isnan(np.asanyarray(returns)[0])):
-            returns = returns.copy()
-            returns[0] = 0.
-        df_cum = np.exp(nancumsum(np.log1p(returns)))
+    df_cum = np.exp(nancumsum(np.log1p(returns)))
 
     if starting_value == 0:
         return df_cum - 1
