@@ -108,7 +108,7 @@ def cum_returns(returns, starting_value=0):
 
     Parameters
     ----------
-    returns : pd.Series, np.ndarray, or pd.DataFrame
+    returns : pd.Series or np.ndarray
         Returns of the strategy as a percentage, noncumulative.
          - Time series with decimal returns.
          - Example:
@@ -116,14 +116,12 @@ def cum_returns(returns, starting_value=0):
             2015-07-17    0.045350
             2015-07-20    0.030957
             2015-07-21    0.004902.
-        - Also accepts two dimensional data. In this case,
-            each column is cumulated.
     starting_value : float, optional
        The starting returns.
 
     Returns
     -------
-    pd.Series, np.ndarray, or pd.DataFrame
+    pd.Series or np.ndarray
         Series of cumulative returns.
 
     Notes
