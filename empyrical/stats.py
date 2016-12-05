@@ -140,7 +140,7 @@ def cum_returns(returns, starting_value=0):
     if len(returns) < 1:
         return type(returns)([])
 
-    if np.all(np.isnan(np.asanyarray(returns)[0])):
+    if np.isnan(np.asanyarray(returns)[0]):
         returns = returns.copy()
         returns[0] = 0.
 
