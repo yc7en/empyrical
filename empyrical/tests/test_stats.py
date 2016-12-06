@@ -1019,7 +1019,36 @@ class TestStats(TestCase):
         return ReturnTypeEmpyricalProxy(self, (pd.Series, float))
 
 
-class TestDataFrameStats(TestCase):
+class TestStatsArrays(TestStats):
+    """
+    Tests pass np.ndarray inputs to empyrical and assert that outputs are of
+    type np.ndarray or float.
+
+    """
+    @property
+    def empyrical(self):
+        return PassArraysEmpyricalProxy(self, (np.ndarray, float))
+
+
+class TestStatsIntIndex(TestStats):
+    """
+    Tests pass int-indexed pd.Series inputs to empyrical and assert that
+    outputs are of type pd.Series or float.
+
+    This prevents a regression where we're indexing with ints into a pd.Series
+    to find the last item and get a KeyError when the series is int-indexed.
+
+    """
+    @property
+    def empyrical(self):
+        return ConvertPandasEmpyricalProxy(
+            self,
+            (pd.Series, float),
+            lambda obj: type(obj)(obj.values, index=np.arange(len(obj))),
+        )
+
+
+class Test2DStats(TestCase):
     """
     Tests for functions that are capable of outputting a DataFrame.
     """
@@ -1057,7 +1086,7 @@ class TestDataFrameStats(TestCase):
         (df_input, 0, df_0_expected),
         (df_input, 100, df_100_expected)
     ])
-    def test_cum_returns(self, returns, starting_value, expected):
+    def test_cum_returns_df(self, returns, starting_value, expected):
         cum_returns = self.empyrical.cum_returns(
             returns,
             starting_value=starting_value,
@@ -1070,38 +1099,37 @@ class TestDataFrameStats(TestCase):
                     expected[column][i],
                     4)
 
-    @property
-    def empyrical(self):
-        return ReturnTypeEmpyricalProxy(self, (pd.DataFrame))
-
-
-class TestStatsArrays(TestStats):
-    """
-    Tests pass np.ndarray inputs to empyrical and assert that outputs are of
-    type np.ndarray or float.
-
-    """
-    @property
-    def empyrical(self):
-        return PassArraysEmpyricalProxy(self, (np.ndarray, float))
-
-
-class TestStatsIntIndex(TestStats):
-    """
-    Tests pass int-indexed pd.Series inputs to empyrical and assert that
-    outputs are of type pd.Series or float.
-
-    This prevents a regression where we're indexing with ints into a pd.Series
-    to find the last item and get a KeyError when the series is int-indexed.
-
-    """
-    @property
-    def empyrical(self):
-        return ConvertPandasEmpyricalProxy(
-            self,
-            (pd.Series, float),
-            lambda obj: type(obj)(obj.values, index=np.arange(len(obj))),
+    @parameterized.expand([
+        (df_input.as_matrix(), 0, df_0_expected.as_matrix()),
+        (df_input.as_matrix(), 100, df_100_expected.as_matrix())
+    ])
+    def test_cum_returns_matrix(self, returns, starting_value, expected):
+        cum_returns = self.empyrical.cum_returns(
+            returns,
+            starting_value=starting_value,
         )
+
+        for row in range(len(cum_returns)):
+            for col in range(len(returns[row])):
+                assert_almost_equal(
+                    cum_returns[row][col],
+                    expected[row][col],
+                    4)
+
+    @property
+    def empyrical(self):
+        """
+        Returns a wrapper around the empyrical module so tests can
+        perform input conversions or return type checks on each call to an
+        empyrical function. See full explanation in TestStats.
+
+        Returns
+        -------
+        empyrical
+
+        """
+
+        return ReturnTypeEmpyricalProxy(self, (pd.DataFrame, np.ndarray))
 
 
 class ReturnTypeEmpyricalProxy(object):
