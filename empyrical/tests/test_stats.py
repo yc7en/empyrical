@@ -1117,7 +1117,7 @@ class Test2DStats(TestCase):
 class Test2DStatsArrays(Test2DStats):
     """
     Tests pass np.ndarray inputs to empyrical and assert that outputs are of
-    type np.ndarray or float.
+    type np.ndarray.
 
     """
     @property
