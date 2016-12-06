@@ -142,11 +142,11 @@ def cum_returns(returns, starting_value=0):
     if len(returns) < 1:
         return type(returns)([])
 
-    if np.any(np.isnan(np.asanyarray(returns)[0])):
+    if np.any(np.isnan(returns)):
         returns = returns.copy()
         returns[np.isnan(returns)] = 0.
 
-    df_cum = np.exp(nancumsum(np.log1p(returns), axis=0))
+    df_cum = (returns + 1).cumprod(axis=0)
 
     if starting_value == 0:
         return df_cum - 1
