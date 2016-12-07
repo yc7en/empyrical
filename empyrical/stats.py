@@ -15,8 +15,6 @@
 
 from __future__ import division
 
-from functools import wraps
-
 import pandas as pd
 import numpy as np
 from scipy import stats
@@ -108,7 +106,7 @@ def cum_returns(returns, starting_value=0):
 
     Parameters
     ----------
-    returns : pd.Series or np.ndarray
+    returns : pd.Series, np.ndarray, or pd.DataFrame
         Returns of the strategy as a percentage, noncumulative.
          - Time series with decimal returns.
          - Example:
@@ -116,12 +114,14 @@ def cum_returns(returns, starting_value=0):
             2015-07-17    0.045350
             2015-07-20    0.030957
             2015-07-21    0.004902.
+        - Also accepts two dimensional data. In this case,
+            each column is cumulated.
     starting_value : float, optional
        The starting returns.
 
     Returns
     -------
-    pd.Series or np.ndarray
+    pd.Series, np.ndarray, or pd.DataFrame
         Series of cumulative returns.
 
     Notes
@@ -140,11 +140,11 @@ def cum_returns(returns, starting_value=0):
     if len(returns) < 1:
         return type(returns)([])
 
-    if np.isnan(np.asanyarray(returns)[0]):
+    if np.any(np.isnan(returns)):
         returns = returns.copy()
-        returns[0] = 0.
+        returns[np.isnan(returns)] = 0.
 
-    df_cum = np.exp(nancumsum(np.log1p(returns)))
+    df_cum = (returns + 1).cumprod(axis=0)
 
     if starting_value == 0:
         return df_cum - 1
@@ -180,88 +180,6 @@ def cum_returns_final(returns, starting_value=0):
 
     return cum_returns(np.asanyarray(returns),
                        starting_value=starting_value)[-1]
-
-
-def array_wrap(arg_name, _not_specified=object()):
-    """
-    Decorator for functions working on array_likes that ensures the type of
-    output matches that of the input, delegating to the input's __array_wrap__.
-
-    Parameters
-    ----------
-    arg_name : str
-
-        The name of the array_like arg to the wrapped function. Should be the
-        first positional parameter to the wrapped function.
-
-    """
-    def dec(f):
-        @wraps(f)
-        def _wrapit(*args, **kwds):
-            obj = kwds.get(arg_name, _not_specified)
-            if obj is _not_specified:
-                obj = args[0]
-
-            try:
-                wrap = obj.__array_wrap__
-            except AttributeError:
-                wrap = None
-            result = f(*args, **kwds)
-            if wrap:
-                if not isinstance(result, np.ndarray):
-                    result = np.asarray(result)
-                result = wrap(result)
-            return result
-        return _wrapit
-    return dec
-
-
-@array_wrap('a')
-def nancumsum(a, axis=None, dtype=None):
-    """
-    Return the cumulative sum of array elements over a given axis treating Not
-    a Numbers (NaNs) as zero.  The cumulative sum does not change when NaNs are
-    encountered and leading NaNs are replaced by zeros.
-
-    Handles a subset of the edge cases handled by the nancumsum added in numpy
-    1.12.0.
-
-    Parameters
-    ----------
-    a : np.ndarray or pd.Series
-
-        Input array.
-
-    axis : int, optional
-
-        Axis along which the cumulative sum is computed. The default
-        (None) is to compute the cumsum over the flattened array.
-
-    dtype : np.dtype, optional
-
-        Type of the returned array and of the accumulator in which the
-        elements are summed.  If `dtype` is not specified, it defaults
-        to the dtype of `a`, unless `a` has an integer dtype with a
-        precision less than that of the default platform integer.  In
-        that case, the default platform integer is used.
-
-    Returns
-    -------
-    nancumsum : np.ndarray or pd.Series
-
-        A new array that has the same size as a, and the same shape as a.
-
-    See Also
-    --------
-    numpy.cumsum : Cumulative sum across array propagating NaNs.
-
-    """
-    y = np.array(a, subok=True)
-    mask = np.isnan(a)
-    np.putmask(y, mask, 0.)
-    result = np.cumsum(y, axis=axis, dtype=dtype)
-    np.putmask(result, mask, np.nan)
-    return result
 
 
 def aggregate_returns(returns, convert_to):
