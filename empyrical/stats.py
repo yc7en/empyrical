@@ -20,26 +20,9 @@ import numpy as np
 from scipy import stats
 from six import iteritems
 
-from .utils import nanmean, nanstd, nanmin
-
-
-APPROX_BDAYS_PER_MONTH = 21
-APPROX_BDAYS_PER_YEAR = 252
-
-MONTHS_PER_YEAR = 12
-WEEKS_PER_YEAR = 52
-
-DAILY = 'daily'
-WEEKLY = 'weekly'
-MONTHLY = 'monthly'
-YEARLY = 'yearly'
-
-ANNUALIZATION_FACTORS = {
-    DAILY: APPROX_BDAYS_PER_YEAR,
-    WEEKLY: WEEKS_PER_YEAR,
-    MONTHLY: MONTHS_PER_YEAR,
-    YEARLY: 1
-}
+from .utils import nanmean, nanstd, nanmin, up, down, roll
+from .periods import ANNUALIZATION_FACTORS, APPROX_BDAYS_PER_YEAR
+from .periods import DAILY, WEEKLY, MONTHLY, YEARLY
 
 
 def _adjust_returns(returns, adjustment_factor):
@@ -240,8 +223,12 @@ def max_drawdown(returns):
     if len(returns) < 1:
         return np.nan
 
-    cumulative = cum_returns(returns, starting_value=100)
+    if type(returns) == pd.Series:
+        returns = returns.values
+
+    cumulative = np.insert(cum_returns(returns, starting_value=100), 0, 100)
     max_return = np.fmax.accumulate(cumulative)
+
     return nanmin((cumulative - max_return) / max_return)
 
 
@@ -587,9 +574,9 @@ def downside_risk(returns, required_return=0, period=DAILY,
     return dside_risk
 
 
-def information_ratio(returns, factor_returns):
+def excess_sharpe(returns, factor_returns):
     """
-    Determines the Information ratio of a strategy.
+    Determines the Excess Sharpe of a strategy.
 
     Parameters
     ----------
@@ -602,11 +589,12 @@ def information_ratio(returns, factor_returns):
     Returns
     -------
     float
-        The information ratio.
+        The excess sharpe.
 
     Note
     -----
-    See https://en.wikipedia.org/wiki/information_ratio for more details.
+    The excess Sharpe is a simplified Information Ratio that uses
+    tracking error rather than "active risk" as the denominator.
 
     """
     if len(returns) < 2:
@@ -724,7 +712,6 @@ def alpha_beta_aligned(returns, factor_returns, risk_free=0.0, period=DAILY,
         Alpha.
     float
         Beta.
-
     """
     b = beta_aligned(returns, factor_returns, risk_free)
     a = alpha_aligned(returns, factor_returns, risk_free, period,
@@ -1005,6 +992,227 @@ def cagr(returns, period=DAILY, annualization=None):
     return ending_value ** (1. / no_years) - 1
 
 
+def capture(returns, factor_returns, period=DAILY):
+    """
+    Compute capture ratio.
+
+    Parameters
+    ----------
+    returns : pd.Series or np.ndarray
+        Returns of the strategy, noncumulative.
+        - See full explanation in :func:`~empyrical.stats.cum_returns`.
+    factor_returns : pd.Series or np.ndarray
+        Noncumulative returns of the factor to which beta is
+        computed. Usually a benchmark such as the market.
+        - This is in the same style as returns.
+    period : str, optional
+        Defines the periodicity of the 'returns' data for purposes of
+        annualizing. Value ignored if `annualization` parameter is specified.
+        Defaults are:
+            'monthly':12
+            'weekly': 52
+            'daily': 252
+    Returns
+    -------
+    float, np.nan
+        The capture ratio.
+
+    Notes
+    -----
+    See http://www.investopedia.com/terms/u/up-market-capture-ratio.asp for
+    details.
+    """
+    return (annual_return(returns, period=period) /
+            annual_return(factor_returns, period=period))
+
+
+def up_capture(returns, factor_returns, **kwargs):
+    """
+    Compute the capture ratio for periods when the benchmark return is positive
+
+    Parameters
+    ----------
+    see documentation for `capture`.
+
+    Returns
+    -------
+    float, np.nan
+
+    Notes
+    -----
+    See http://www.investopedia.com/terms/u/up-market-capture-ratio.asp for
+    more information.
+    """
+    return up(returns, factor_returns, function=capture, **kwargs)
+
+
+def down_capture(returns, factor_returns, **kwargs):
+    """
+    Compute the capture ratio for periods when the benchmark return is negative
+
+    Parameters
+    ----------
+    see documentation for `capture`.
+
+    Returns
+    -------
+    float, np.nan
+
+    Note
+    ----
+    See http://www.investopedia.com/terms/d/down-market-capture-ratio.asp for
+    more information.
+    """
+    return down(returns, factor_returns, function=capture, **kwargs)
+
+
+def up_down_capture(returns, factor_returns, **kwargs):
+    """
+    Computes the ratio of up_capture to down_capture.
+
+    Parameters
+    ----------
+    see documentation for `capture`.
+
+    Returns
+    -------
+    float
+        the updown capture ratio
+    """
+    return (up_capture(returns, factor_returns, **kwargs) /
+            down_capture(returns, factor_returns, **kwargs))
+
+
+def up_alpha_beta(returns, factor_returns, **kwargs):
+    """
+    Computes alpha and beta for periods when the benchmark return is positive.
+
+    Parameters
+    ----------
+    see documentation for `alpha_beta`.
+
+    Returns
+    -------
+    float
+        Alpha.
+    float
+        Beta.
+    """
+    return up(returns, factor_returns, function=alpha_beta_aligned, **kwargs)
+
+
+def down_alpha_beta(returns, factor_returns, **kwargs):
+    """
+    Computes alpha and beta for periods when the benchmark return is negative.
+
+    Parameters
+    ----------
+    see documentation for `alpha_beta`.
+
+    Returns
+    -------
+    float
+        Alpha.
+    float
+        Beta.
+    """
+    return down(returns, factor_returns, function=alpha_beta_aligned, **kwargs)
+
+
+def roll_up_capture(returns, factor_returns, window=10, **kwargs):
+    """
+    Computes the up capture measure over a rolling window.
+
+    Parameters
+    ----------
+    see documentation for `capture` (pass all args, kwargs required)
+
+    window : int, required
+        Size of the rolling window in terms of the periodicity of the data.
+        - eg window = 60, periodicity=DAILY, represents a rolling 60 day window
+    """
+    return roll(returns, factor_returns, window=window, function=up_capture,
+                **kwargs)
+
+
+def roll_down_capture(returns, factor_returns, window=10, **kwargs):
+    """
+    Computes the down capture measure over a rolling window.
+
+    Parameters
+    ----------
+    see documentation for `capture` (pass all args, kwargs required)
+
+    window : int, required
+        Size of the rolling window in terms of the periodicity of the data.
+        - eg window = 60, periodicity=DAILY, represents a rolling 60 day window
+    """
+    return roll(returns, factor_returns, window=window, function=down_capture,
+                **kwargs)
+
+
+def roll_up_down_capture(returns, factor_returns, window=10, **kwargs):
+    """
+    Computes the up/down capture measure over a rolling window.
+
+    Parameters
+    ----------
+    see documentation for `capture` (pass all args, kwargs required)
+
+    window : int, required
+        Size of the rolling window in terms of the periodicity of the data.
+        - eg window = 60, periodicity=DAILY, represents a rolling 60 day window
+    """
+    return roll(returns, factor_returns, window=window,
+                function=up_down_capture, **kwargs)
+
+
+def roll_max_drawdown(returns, window=10, **kwargs):
+    """
+    Computes the max_drawdown measure over a rolling window.
+
+    Parameters
+    ----------
+    see documentation for `max_drawdown` (pass all args, kwargs required)
+
+    window : int, required
+        Size of the rolling window in terms of the periodicity of the data.
+        - eg window = 60, periodicity=DAILY, represents a rolling 60 day window
+    """
+    return roll(returns, window=window, function=max_drawdown, **kwargs)
+
+
+def roll_alpha_beta(returns, factor_returns, window=10, **kwargs):
+    """
+    Computes the alpha_beta measure over a rolling window.
+
+    Parameters
+    ----------
+    see documentation for `alpha_beta` (pass all args, kwargs required)
+
+    window : int, required
+        Size of the rolling window in terms of the periodicity of the data.
+        - eg window = 60, periodicity=DAILY, represents a rolling 60 day window
+    """
+    return roll(returns, factor_returns, window=window,
+                function=alpha_beta_aligned, **kwargs)
+
+
+def roll_sharpe_ratio(returns, window=10, **kwargs):
+    """
+    Computes the sharpe ratio measure over a rolling window.
+
+    Parameters
+    ----------
+    see documentation for `sharpe_ratio` (pass all args, kwargs required)
+
+    window : int, required
+        Size of the rolling window in terms of the periodicity of the data.
+        - eg window = 60, periodicity=DAILY, represents a rolling 60 day window
+    """
+    return roll(returns, window=window, function=sharpe_ratio, **kwargs)
+
+
 SIMPLE_STAT_FUNCS = [
     cum_returns_final,
     annual_return,
@@ -1022,7 +1230,10 @@ SIMPLE_STAT_FUNCS = [
 ]
 
 FACTOR_STAT_FUNCS = [
-    information_ratio,
+    excess_sharpe,
     alpha,
     beta,
+    capture,
+    up_capture,
+    down_capture
 ]
