@@ -19,8 +19,7 @@ import versioneer
 
 
 DISTNAME = "empyrical"
-DESCRIPTION = """empyrical is a Python library with performance and risk statistics
-commonly used in quantitative finance"""
+DESCRIPTION = "empyrical is a Python library with performance and risk statistics commonly used in quantitative finance"
 LONG_DESCRIPTION = """empyrical is a Python library with performance and risk
 statistics commonly used in quantitative finance by `Quantopian Inc`_.
 
