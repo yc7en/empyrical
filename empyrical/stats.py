@@ -1214,6 +1214,55 @@ def roll_sharpe_ratio(returns, window=10, **kwargs):
     return roll(returns, window=window, function=sharpe_ratio, **kwargs)
 
 
+def value_at_risk(returns, cutoff=0.05):
+    """
+    Value at risk (VaR) of a returns stream.
+
+    Parameters
+    ----------
+    returns : pandas.Series or 1-D numpy.array
+        Non-cumulative daily returns.
+    cutoff : float, optional
+        Decimal representing the percentage cutoff for the bottom percentile of
+        returns. Defaults to 0.05.
+
+    Returns
+    -------
+    VaR : float
+        The VaR value.
+    """
+    return np.percentile(returns, 100 * cutoff)
+
+
+def conditional_value_at_risk(returns, cutoff=0.05):
+    """
+    Conditional value at risk (CVaR) of a returns stream.
+
+    CVaR measures the expected single-day returns of an asset on that asset's
+    worst performing days, where "worst-performing" is defined as falling below
+    ``cutoff`` as a percentile of all daily returns.
+
+    Parameters
+    ----------
+    returns : pandas.Series or 1-D numpy.array
+        Non-cumulative daily returns.
+    cutoff : float, optional
+        Decimal representing the percentage cutoff for the bottom percentile of
+        returns. Defaults to 0.05.
+
+    Returns
+    -------
+    CVaR : float
+        The CVaR value.
+    """
+    # PERF: Instead of using the 'value_at_risk' function to find the cutoff
+    # value, which requires a call to numpy.percentile, determine the cutoff
+    # index manually and partition out the lowest returns values. The value at
+    # the cutoff index should be included in the partition.
+    cutoff_index = int((len(returns) - 1) * cutoff)
+    return np.mean(np.partition(returns, cutoff_index)[:cutoff_index + 1])
+
+
 SIMPLE_STAT_FUNCS = [
     cum_returns_final,
     annual_return,
@@ -1227,7 +1276,9 @@ SIMPLE_STAT_FUNCS = [
     stats.skew,
     stats.kurtosis,
     tail_ratio,
-    cagr
+    cagr,
+    value_at_risk,
+    conditional_value_at_risk,
 ]
 
 FACTOR_STAT_FUNCS = [
