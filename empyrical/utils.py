@@ -234,6 +234,8 @@ def get_fama_french():
     five_factors /= 100.
     five_factors.index = five_factors.index.tz_localize('utc')
 
+    five_factors.columns = five_factors.columns.str.strip()
+
     return five_factors
 
 
