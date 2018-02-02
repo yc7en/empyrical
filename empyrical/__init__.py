@@ -62,3 +62,9 @@ from .periods import (
     MONTHLY,
     YEARLY
 )
+
+
+from .perf_attrib import (
+    perf_attrib,
+    compute_exposures,
+)
