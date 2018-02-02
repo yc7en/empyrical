@@ -6,7 +6,15 @@ def perf_attrib(returns,
                 factor_returns,
                 factor_loadings):
     """
-    Does performance attribution given risk info.
+    Attributes the performance of a returns stream to a set of risk factors.
+
+    Performance attribution determines how much each risk factor, e.g.,
+    momentum, the technology sector, etc., contributed to total returns, as
+    well as the daily exposure to each of the risk factors. The returns that
+    can be attributed to one of the given risk factors are the
+    `common_returns`, and the returns that _cannot_ be attributed to a risk
+    factor are the `specific_returns`. The `common_returns` and
+    `specific_returns` summed together will always equal the total returns.
 
     Parameters
     ----------
@@ -19,7 +27,6 @@ def perf_attrib(returns,
 
     positions: pd.Series
         Daily holdings in percentages, indexed by date.
-        Short positions show up as cash in the 'cash' column.
         - Examples:
             dt          ticker
             2017-01-01  AAPL      0.417582
@@ -69,6 +76,10 @@ def perf_attrib(returns,
             dt
             2017-01-01  0.249087  0.935925        1.185012          1.185012
             2017-01-02 -0.003194 -0.400786       -0.403980         -0.403980
+
+    Note
+    ----
+    See https://en.wikipedia.org/wiki/Performance_attribution for more details.
     """
     risk_exposures_portfolio = compute_exposures(positions,
                                                  factor_loadings)
@@ -93,7 +104,7 @@ def compute_exposures(positions, factor_loadings):
     Parameters
     ----------
     positions: pd.Series
-        A series of holdings indexed by date and ticker.
+        A series of holdings as percentages indexed by date and ticker.
         - Examples:
             dt          ticker
             2017-01-01  AAPL      0.417582
