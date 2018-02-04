@@ -112,19 +112,8 @@ def cum_returns(returns, starting_value=0):
     pd.Series, np.ndarray, or pd.DataFrame
         Series of cumulative returns.
 
-    Note
-    ----
-    For increased numerical accuracy, convert input to log returns
-    where it is possible to sum instead of multiplying::
 
-      PI((1+r_i)) - 1 = exp(ln(PI(1+r_i)))     # x = exp(ln(x))
-                      = exp(SIGMA(ln(1+r_i))   # ln(a*b) = ln(a) + ln(b)
     """
-    # df_price.pct_change() adds a nan in first position, we can use
-    # that to have cum_logarithmic_returns start at the origin so that
-    # df_cum.iloc[0] == starting_value
-    # Note that we can't add that ourselves as we don't know which dt
-    # to use.
 
     if len(returns) < 1:
         return type(returns)([])
