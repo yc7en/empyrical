@@ -58,7 +58,7 @@ def _create_unary_vectorized_roll_function(function):
             out = np.empty(0, dtype='float64')
 
         if allocated_output and isinstance(arr, pd.Series):
-            out = pd.Series(out)
+            out = pd.Series(out, index=arr.index[-len(out):])
 
         return out
 
@@ -109,9 +109,9 @@ def _create_binary_vectorized_roll_function(function):
 
         if allocated_output:
             if out.ndim == 1 and isinstance(lhs, pd.Series):
-                out = pd.Series(out)
+                out = pd.Series(out, index=lhs.index[-len(out):])
             elif out.ndim == 2 and isinstance(lhs, pd.Series):
-                out = pd.DataFrame(out)
+                out = pd.DataFrame(out, index=lhs.index[-len(out):])
         return out
 
     binary_vectorized_roll.__doc__ = binary_vectorized_roll.__doc__.format(
@@ -210,9 +210,8 @@ def cum_returns(returns, starting_value=0, out=None):
     cumulative_returns : array-like
         Series of cumulative returns.
     """
-
     if len(returns) < 1:
-        return type(returns)([])
+        return returns.copy()
 
     nanmask = np.isnan(returns)
     if np.any(nanmask):
