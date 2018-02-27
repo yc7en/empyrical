@@ -233,9 +233,9 @@ def cum_returns(returns, starting_value=0, out=None):
 
     if allocated_output:
         if returns.ndim == 1 and isinstance(returns, pd.Series):
-            out = pd.Series(out)
+            out = pd.Series(out, index=returns.index)
         elif isinstance(returns, pd.DataFrame):
-            out = pd.DataFrame(out)
+            out = pd.DataFrame(out, index=returns.index)
 
     return out
 
