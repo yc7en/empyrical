@@ -13,6 +13,12 @@ from pandas.core.generic import NDFrame
 from scipy import stats
 from six import iteritems, wraps
 
+try:
+    from pandas.testing import assert_index_equal
+except ImportError:
+    # This moved in pandas 0.20.
+    from pandas.util.testing import assert_index_equal
+
 import empyrical
 import empyrical.utils as emutils
 
@@ -28,7 +34,7 @@ class BaseTestCase(TestCase):
         to be a no-op in suites like TestStatsArrays that unwrap pandas objects
         into ndarrays.
         """
-        pd.testing.assert_index_equal(result.index, expected.index)
+        assert_index_equal(result.index, expected.index)
 
 
 class TestStats(BaseTestCase):
