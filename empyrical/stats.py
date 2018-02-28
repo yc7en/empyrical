@@ -37,7 +37,8 @@ def _create_unary_vectorized_roll_function(function):
         window : int
             Size of the rolling window in terms of the periodicity of the data.
         out : array-like, optional
-            The array to store the store the output.
+            Array to use as output buffer.
+            If not passed, a new array will be created.
         **kwargs
             Forwarded to :func:`~empyrical.{name}`.
 
@@ -58,7 +59,7 @@ def _create_unary_vectorized_roll_function(function):
             out = np.empty(0, dtype='float64')
 
         if allocated_output and isinstance(arr, pd.Series):
-            out = pd.Series(out)
+            out = pd.Series(out, index=arr.index[-len(out):])
 
         return out
 
@@ -84,7 +85,8 @@ def _create_binary_vectorized_roll_function(function):
         window : int
             Size of the rolling window in terms of the periodicity of the data.
         out : array-like, optional
-            The array to store the store the output.
+            Array to use as output buffer.
+            If not passed, a new array will be created.
         **kwargs
             Forwarded to :func:`~empyrical.{name}`.
 
@@ -109,9 +111,9 @@ def _create_binary_vectorized_roll_function(function):
 
         if allocated_output:
             if out.ndim == 1 and isinstance(lhs, pd.Series):
-                out = pd.Series(out)
+                out = pd.Series(out, index=lhs.index[-len(out):])
             elif out.ndim == 2 and isinstance(lhs, pd.Series):
-                out = pd.DataFrame(out)
+                out = pd.DataFrame(out, index=lhs.index[-len(out):])
         return out
 
     binary_vectorized_roll.__doc__ = binary_vectorized_roll.__doc__.format(
@@ -203,16 +205,16 @@ def cum_returns(returns, starting_value=0, out=None):
     starting_value : float, optional
        The starting returns.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------
     cumulative_returns : array-like
         Series of cumulative returns.
     """
-
     if len(returns) < 1:
-        return type(returns)([])
+        return returns.copy()
 
     nanmask = np.isnan(returns)
     if np.any(nanmask):
@@ -233,9 +235,9 @@ def cum_returns(returns, starting_value=0, out=None):
 
     if allocated_output:
         if returns.ndim == 1 and isinstance(returns, pd.Series):
-            out = pd.Series(out)
+            out = pd.Series(out, index=returns.index)
         elif isinstance(returns, pd.DataFrame):
-            out = pd.DataFrame(out)
+            out = pd.DataFrame(out, index=returns.index)
 
     return out
 
@@ -318,7 +320,8 @@ def max_drawdown(returns, out=None):
         Daily returns of the strategy, noncumulative.
         - See full explanation in :func:`~empyrical.stats.cum_returns`.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------
@@ -471,7 +474,8 @@ def annual_volatility(returns,
         returns into annual returns. Value should be the annual frequency of
         `returns`.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------
@@ -635,7 +639,8 @@ def sharpe_ratio(returns,
         returns into annual returns. Value should be the annual frequency of
         `returns`.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------
@@ -713,7 +718,8 @@ def sortino_ratio(returns,
         The downside risk of the given inputs, if known. Will be calculated if
         not provided.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------
@@ -792,7 +798,8 @@ def downside_risk(returns,
         returns into annual returns. Value should be the annual frequency of
         `returns`.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------
@@ -857,7 +864,8 @@ def excess_sharpe(returns, factor_returns, out=None):
     factor_returns: float / series
         Benchmark return to compare returns against.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------
@@ -962,7 +970,8 @@ def alpha_beta(returns,
         returns into annual returns. Value should be the annual frequency of
         `returns`.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------
@@ -994,7 +1003,8 @@ def roll_alpha_beta(returns, factor_returns, window=10, **kwargs):
     window : int
         Size of the rolling window in terms of the periodicity of the data.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
     **kwargs
         Forwarded to :func:`~empyrical.alpha_beta`.
     """
@@ -1046,7 +1056,8 @@ def alpha_beta_aligned(returns,
         returns into annual returns. Value should be the annual frequency of
         `returns`.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------
@@ -1114,7 +1125,8 @@ def alpha(returns,
         The beta for the given inputs, if already known. Will be calculated
         internally if not provided.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------
@@ -1182,7 +1194,8 @@ def alpha_aligned(returns,
         The beta for the given inputs, if already known. Will be calculated
         internally if not provided.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------
@@ -1241,7 +1254,8 @@ def beta(returns, factor_returns, risk_free=0.0, out=None):
         Constant risk-free return throughout the period. For example, the
         interest rate on a three month us treasury bill.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------
@@ -1282,7 +1296,8 @@ def beta_aligned(returns, factor_returns, risk_free=0.0, out=None):
         Constant risk-free return throughout the period. For example, the
         interest rate on a three month us treasury bill.
     out : array-like, optional
-        The array to store the store the output.
+        Array to use as output buffer.
+        If not passed, a new array will be created.
 
     Returns
     -------

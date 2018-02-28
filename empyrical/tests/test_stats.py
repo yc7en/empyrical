@@ -1,8 +1,8 @@
 from __future__ import division
 
-import random
 from copy import copy
 from operator import attrgetter
+import random
 from unittest import TestCase, SkipTest
 
 from parameterized import parameterized
@@ -13,13 +13,31 @@ from pandas.core.generic import NDFrame
 from scipy import stats
 from six import iteritems, wraps
 
+try:
+    from pandas.testing import assert_index_equal
+except ImportError:
+    # This moved in pandas 0.20.
+    from pandas.util.testing import assert_index_equal
+
 import empyrical
 import empyrical.utils as emutils
 
 DECIMAL_PLACES = 8
 
 
-class TestStats(TestCase):
+class BaseTestCase(TestCase):
+    def assert_indexes_match(self, result, expected):
+        """
+        Assert that two pandas objects have the same indices.
+
+        This is a method instead of a free function so that we can override it
+        to be a no-op in suites like TestStatsArrays that unwrap pandas objects
+        into ndarrays.
+        """
+        assert_index_equal(result.index, expected.index)
+
+
+class TestStats(BaseTestCase):
 
     # Simple benchmark, no drawdown
     simple_benchmark = pd.Series(
@@ -156,6 +174,8 @@ class TestStats(TestCase):
                 cum_returns[i],
                 expected[i],
                 4)
+
+        self.assert_indexes_match(cum_returns, returns)
 
     @parameterized.expand([
         (empty_returns, 0, np.nan),
@@ -996,6 +1016,8 @@ class TestStats(TestCase):
             np.asarray(expected),
             4)
 
+        self.assert_indexes_match(test, returns[-len(expected):])
+
     @parameterized.expand([
         (empty_returns, 6, []),
         (negative_returns, 6, [-18.09162052, -26.79897486, -26.69138263,
@@ -1008,6 +1030,8 @@ class TestStats(TestCase):
             np.asarray(test),
             np.asarray(expected),
             DECIMAL_PLACES)
+
+        self.assert_indexes_match(test, returns[-len(expected):])
 
     @parameterized.expand([
         (empty_returns, empty_returns, np.nan),
@@ -1057,6 +1081,7 @@ class TestStats(TestCase):
             window,
         )
         if isinstance(test, pd.DataFrame):
+            self.assert_indexes_match(test, benchmark[-len(expected):])
             test = test.values
 
         alpha_test = [t[0] for t in test]
@@ -1114,9 +1139,11 @@ class TestStats(TestCase):
             np.asarray(expected),
             DECIMAL_PLACES)
 
+        self.assert_indexes_match(test, returns[-len(expected):])
+
     @parameterized.expand([
         (empty_returns, empty_returns, 1, []),
-        (one_return, one_return, 1,  1.),
+        (one_return, one_return, 1,  [1.]),
         (mixed_returns, mixed_returns, 6, [1., 1., 1., 1.]),
         (positive_returns, mixed_returns,
          6, [0.00128406, 0.00291564, 0.00171499, 0.0777048]),
@@ -1131,6 +1158,8 @@ class TestStats(TestCase):
             np.asarray(test),
             np.asarray(expected),
             DECIMAL_PLACES)
+
+        self.assert_indexes_match(test, returns[-len(expected):])
 
     @parameterized.expand([
         (empty_returns, simple_benchmark, (np.nan, np.nan)),
@@ -1290,6 +1319,9 @@ class TestStatsArrays(TestStats):
     def empyrical(self):
         return PassArraysEmpyricalProxy(self, (np.ndarray, float))
 
+    def assert_indexes_match(self, result, expected):
+        pass
+
 
 class TestStatsIntIndex(TestStats):
     """
@@ -1308,8 +1340,11 @@ class TestStatsIntIndex(TestStats):
             lambda obj: type(obj)(obj.values, index=np.arange(len(obj))),
         )
 
+    def assert_indexes_match(self, result, expected):
+        pass
 
-class TestHelpers(TestCase):
+
+class TestHelpers(BaseTestCase):
     """
     Tests for helper methods and utils.
     """
@@ -1376,7 +1411,7 @@ class TestHelpers(TestCase):
         self.assertTrue(res.size == 0)
 
 
-class Test2DStats(TestCase):
+class Test2DStats(BaseTestCase):
     """
     Tests for functions that are capable of outputting a DataFrame.
     """
@@ -1429,6 +1464,8 @@ class Test2DStats(TestCase):
             4,
         )
 
+        self.assert_indexes_match(cum_returns, returns)
+
     @property
     def empyrical(self):
         """
@@ -1454,6 +1491,9 @@ class Test2DStatsArrays(Test2DStats):
     @property
     def empyrical(self):
         return PassArraysEmpyricalProxy(self, np.ndarray)
+
+    def assert_indexes_match(self, result, expected):
+        pass
 
 
 class ReturnTypeEmpyricalProxy(object):
