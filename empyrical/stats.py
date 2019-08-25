@@ -1283,10 +1283,18 @@ def alpha_aligned(returns,
     adj_factor_returns = _adjust_returns(factor_returns, risk_free)
     alpha_series = adj_returns - (_beta * adj_factor_returns)
 
-    out = np.multiply(
-        nanmean(alpha_series, axis=0, out=out),
-        ann_factor,
-        out=out,
+    out = np.subtract(
+        np.power(
+            np.add(
+                nanmean(alpha_series, axis=0, out=out),
+                1,
+                out=out
+            ),
+            ann_factor,
+            out=out
+        ),
+        1,
+        out=out
     )
 
     if allocated_output and isinstance(returns, pd.DataFrame):
