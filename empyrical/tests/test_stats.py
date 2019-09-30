@@ -1052,6 +1052,51 @@ class TestStats(BaseTestCase):
             noisy_cagr_2,
             1)
 
+    # regression tests for beta_fragility_heuristic
+    @parameterized.expand([
+        (one_return, one_return, np.nan),
+        (positive_returns, simple_benchmark, 0.0),
+        (mixed_returns, simple_benchmark, 0.09),
+        (negative_returns, simple_benchmark, -0.029999999999999999),
+    ])
+    def test_beta_fragility_heuristic(self, returns, factor_returns, expected):
+        assert_almost_equal(
+            self.empyrical.beta_fragility_heuristic(returns, factor_returns),
+            expected,
+            DECIMAL_PLACES)
+
+    mixed_returns_expected_gpd_risk_result = [0.1,
+                                              0.10001255835838491,
+                                              1.5657360018514067e-06,
+                                              0.4912526273742347,
+                                              0.59126595492541179]
+
+    negative_returns_expected_gpd_risk_result = [0.05,
+                                                 0.068353586736348199,
+                                                 9.4304947982121171e-07,
+                                                 0.34511639904932639,
+                                                 0.41347032855617882]
+
+    # regression tests for gpd_risk_estimates
+    @parameterized.expand([
+        (one_return, [0, 0, 0, 0, 0]),
+        (empty_returns, [0, 0, 0, 0, 0]),
+        (simple_benchmark, [0, 0, 0, 0, 0]),
+        (positive_returns, [0, 0, 0, 0, 0]),
+        (negative_returns, negative_returns_expected_gpd_risk_result),
+        (mixed_returns, mixed_returns_expected_gpd_risk_result),
+        (flat_line_1, [0, 0, 0, 0]),
+        (weekly_returns, mixed_returns_expected_gpd_risk_result),
+        (monthly_returns, mixed_returns_expected_gpd_risk_result),
+    ])
+    def test_gpd_risk_estimates(self, returns, expected):
+        result = self.empyrical.gpd_risk_estimates_aligned(returns)
+        for result_item, expected_item in zip(result, expected):
+            assert_almost_equal(
+                result_item,
+                expected_item,
+                DECIMAL_PLACES)
+
     @parameterized.expand([
         (empty_returns, 6, []),
         (negative_returns, 6, [-0.2282, -0.2745, -0.2899, -0.2747])
@@ -1695,7 +1740,8 @@ class PassArraysEmpyricalProxy(ConvertPandasEmpyricalProxy):
         )
 
     def __getattr__(self, item):
-        if item in ('alpha', 'beta', 'alpha_beta'):
+        if item in ('alpha', 'beta', 'alpha_beta', 'beta_fragility_heuristic',
+                    'gpd_risk_estimates'):
             item += '_aligned'
 
         return super(PassArraysEmpyricalProxy, self).__getattr__(item)
