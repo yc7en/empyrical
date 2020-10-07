@@ -1383,10 +1383,14 @@ def beta_aligned(returns, factor_returns, risk_free=0.0, out=None):
 
     returns_1d = returns.ndim == 1
     if returns_1d:
-        returns = returns[:, np.newaxis]
+        returns = (returns[:, np.newaxis]
+                   if isinstance(returns, np.ndarray) else
+                   returns.values[:, np.newaxis])
 
     if factor_returns.ndim == 1:
-        factor_returns = factor_returns[:, np.newaxis]
+        factor_returns = (factor_returns[:, np.newaxis]
+                          if isinstance(factor_returns, np.ndarray) else
+                          factor_returns.values[:, np.newaxis])
 
     N, M = returns.shape
 
