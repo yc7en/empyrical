@@ -1386,9 +1386,7 @@ def beta_aligned(returns, factor_returns, risk_free=0.0, out=None):
         returns = np.asanyarray(returns)[:, np.newaxis]
 
     if factor_returns.ndim == 1:
-        factor_returns = (factor_returns[:, np.newaxis]
-                          if isinstance(factor_returns, np.ndarray) else
-                          factor_returns.values[:, np.newaxis])
+        factor_returns = np.asanyarray(factor_returns)[:, np.newaxis]
 
     N, M = returns.shape
 
