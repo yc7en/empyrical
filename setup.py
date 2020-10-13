@@ -24,8 +24,8 @@ LONG_DESCRIPTION = """empyrical is a Python library with performance and risk
 statistics commonly used in quantitative finance by `Quantopian Inc`_.
 
 .. _Quantopian Inc: https://www.quantopian.com
-.. _Zipline: http://zipline.io
-.. _pyfolio: http://quantopian.github.io/pyfolio/
+.. _Zipline: https://zipline.io
+.. _pyfolio: https://quantopian.github.io/pyfolio/
 """
 MAINTAINER = "Quantopian Inc"
 MAINTAINER_EMAIL = "opensource@quantopian.com"
