@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/quantopian/empyrical.svg?branch=master)](https://travis-ci.org/quantopian/empyrical)
 
-![PyPI](https://img.shields.io/pypi/v/empyrical?color=%234ec726&style=flat-square)
+[![PyPI](https://img.shields.io/pypi/v/empyrical?color=%234ec726&style=flat-square)](https://pypi.org/project/empyrical/)
 
 # empyrical
 
