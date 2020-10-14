@@ -60,6 +60,7 @@ requirements = [
     'numpy>=1.9.2',
     'pandas>=0.16.1',
     'scipy>=0.15.1',
+    'six',
     "pandas-datareader>=0.2"
 ]
 
